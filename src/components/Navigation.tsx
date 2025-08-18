@@ -39,7 +39,7 @@ export default function Navigation() {
                 className={`text-sm font-medium transition-colors ${
                   isActive(item.href)
                     ? 'text-primary-600'
-                    ? 'text-gray-600 hover:text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 {item.name}
