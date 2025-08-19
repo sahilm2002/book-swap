@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Filter } from 'lucide-react'
 import BookCard from '@/components/BookCard'
 import ReviewModal from '@/components/ReviewModal'
@@ -25,6 +26,7 @@ interface BookWithReviews extends Book {
 }
 
 export default function BrowsePage() {
+  const router = useRouter()
   const [books, setBooks] = useState<BookWithReviews[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -433,7 +435,7 @@ export default function BrowsePage() {
             </p>
             {books.length === 0 ? (
               <button
-                onClick={() => window.location.href = '/add-book'}
+                onClick={() => router.push('/add-book')}
                 className="btn-primary"
               >
                 Add the First Book
