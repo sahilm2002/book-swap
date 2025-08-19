@@ -1,3 +1,6 @@
+-- Database schema for the Books & Booze platform
+-- DEPENDENCY: Run common-triggers.sql first to create shared functions
+--
 -- Create reviews table for book ratings and reviews
 CREATE TABLE IF NOT EXISTS reviews (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -30,14 +33,8 @@ CREATE POLICY "Users can update their own reviews" ON reviews
 CREATE POLICY "Users can delete their own reviews" ON reviews
   FOR DELETE USING (auth.uid() = user_id);
 
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- Note: The update_updated_at_column() function is defined in common-triggers.sql
+-- Make sure to run that file first before executing this schema
 
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER update_reviews_updated_at 
