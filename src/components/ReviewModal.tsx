@@ -3,24 +3,15 @@
 import { useState, useEffect } from 'react'
 import { X, MessageSquare } from 'lucide-react'
 import Rating from './Rating'
-
-interface Review {
-  id?: string
-  bookId: string
-  userId?: string // Made optional since we get it from auth context
-  rating: number
-  review: string
-  createdAt?: Date
-  updatedAt?: Date
-}
+import { BookReview } from '@/types/book'
 
 interface ReviewModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (review: Omit<Review, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => void
+  onSubmit: (review: Omit<BookReview, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => void
   bookTitle: string
   bookId: string // Add this prop for new reviews
-  existingReview?: Review | null
+  existingReview?: BookReview | null
   isLoading?: boolean
 }
 
