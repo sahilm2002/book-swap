@@ -224,10 +224,7 @@ export default function BookCard({
               
               {showReviewButton && onReviewClick && (
                 <button
-                  onClick={() => {
-                    console.log('Review button clicked for book:', book.id, book.title)
-                    onReviewClick(book.id)
-                  }}
+                  onClick={() => onReviewClick(book.id)}
                   className="btn-secondary text-sm px-3 py-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   title="Rate and review this book"
                 >
