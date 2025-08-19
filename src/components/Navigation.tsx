@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Menu, X } from 'lucide-react'
+import { BookOpen, Menu, X, Wine } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Navigation() {
@@ -12,22 +12,26 @@ export default function Navigation() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Browse', href: '/browse' },
-    { name: 'Community', href: '/community' },
+    { name: 'Literary Society', href: '/community' },
     { name: 'About', href: '/about' },
   ]
 
   const isActive = (href: string) => pathname === href
 
   return (
-    <nav className="bg-white border-b sticky top-0 z-50">
+    <nav className="bg-slate-900/95 backdrop-blur-md border-b border-amber-500/20 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
+              <BookOpen className="w-6 h-6 text-slate-900" />
             </div>
-            <span className="text-xl font-bold text-gray-900">Book Swap</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-bold text-amber-200">Books</span>
+              <Wine className="w-5 h-5 text-amber-400" />
+              <span className="text-xl font-bold text-amber-200">Booze</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
@@ -36,10 +40,8 @@ export default function Navigation() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors ${
-                  isActive(item.href)
-                    ? 'text-primary-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                className={`nav-link ${
+                  isActive(item.href) ? 'nav-link-active' : ''
                 }`}
               >
                 {item.name}
@@ -51,7 +53,7 @@ export default function Navigation() {
           <div className="hidden md:flex items-center space-x-4">
             <Link
               href="/auth/login"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              className="nav-link"
             >
               Sign In
             </Link>
@@ -59,14 +61,14 @@ export default function Navigation() {
               href="/auth/signup"
               className="btn-primary text-sm"
             >
-              Get Started
+              Join the Club
             </Link>
           </div>
 
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all duration-200"
           >
             {isMobileMenuOpen ? (
               <X className="w-6 h-6" />
@@ -78,26 +80,24 @@ export default function Navigation() {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
+          <div className="md:hidden border-t border-amber-500/20 py-4 bg-slate-800/95 backdrop-blur-md">
             <div className="space-y-4">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`block text-base font-medium transition-colors ${
-                    isActive(item.href)
-                      ? 'text-primary-600'
-                      : 'text-gray-600 hover:text-gray-900'
+                  className={`block nav-link ${
+                    isActive(item.href) ? 'nav-link-active' : ''
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
               ))}
-              <div className="pt-4 border-t border-gray-200 space-y-3">
+              <div className="pt-4 border-t border-amber-500/20 space-y-3">
                 <Link
                   href="/auth/login"
-                  className="block text-base font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  className="block nav-link"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Sign In
@@ -107,7 +107,7 @@ export default function Navigation() {
                   className="block text-center btn-primary"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Get Started
+                  Join the Club
                 </Link>
               </div>
             </div>

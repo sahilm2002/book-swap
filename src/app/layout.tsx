@@ -6,13 +6,13 @@ import Navigation from '@/components/Navigation'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Book Swap - Share and Discover Books',
-  description: 'A platform for book lovers to discover, share, and exchange books with other readers in their community.',
-  keywords: ['books', 'book exchange', 'reading', 'community', 'literature'],
-  authors: [{ name: 'Book Swap Team' }],
+  title: 'Books & Booze - Where Literature Meets Libations',
+  description: 'A sophisticated community for bibliophiles who appreciate fine literature and craft cocktails. Share your favorite reads while discovering the perfect drink pairings.',
+  keywords: ['books', 'literature', 'cocktails', 'book exchange', 'reading', 'community', 'bibliophiles', 'craft cocktails', 'literary society'],
+  authors: [{ name: 'Books & Booze Team' }],
   openGraph: {
-    title: 'Book Swap - Share and Discover Books',
-    description: 'A platform for book lovers to discover, share, and exchange books with other readers in their community.',
+    title: 'Books & Booze - Where Literature Meets Libations',
+    description: 'A sophisticated community for bibliophiles who appreciate fine literature and craft cocktails. Share your favorite reads while discovering the perfect drink pairings.',
     type: 'website',
     locale: 'en_US',
   },
@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
           <Navigation />
           {children}
         </div>
