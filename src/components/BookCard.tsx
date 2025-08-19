@@ -108,7 +108,7 @@ export default function BookCard({
               )}
             </div>
           ) : (
-            <div className="w-20 h-30 bg-gray-200 rounded-md flex items-center justify-center relative">
+            <div className="w-20 h-[120px] bg-gray-200 rounded-md flex items-center justify-center relative">
               <BookOpen className="w-8 h-8 text-gray-400" />
               
               {/* Show cover URL if it exists but failed to load */}
