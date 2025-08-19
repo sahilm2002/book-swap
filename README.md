@@ -10,6 +10,36 @@ A modern book swapping platform built with Next.js, Supabase, and Tailwind CSS.
 - Rating and review system
 - Swap requests and management
 - Responsive design with "Books & Booze" theme
+- **Extended session management** (15 minutes without activity)
+
+## Session Management
+
+The platform includes intelligent session management to keep users logged in during active use:
+
+### Features
+
+- **15-Minute Session Timeout**: Users stay logged in for 15 minutes without activity
+- **Automatic Session Refresh**: Sessions are automatically refreshed every 5 minutes
+- **Activity Tracking**: Monitors user interactions (mouse, keyboard, scroll, touch)
+- **Smart Refresh**: Sessions refresh when users return to the tab or focus the window
+- **Visual Status**: Dashboard shows real-time session status and remaining time
+
+### Configuration
+
+```bash
+# Session management (optional, defaults shown)
+NEXT_PUBLIC_SESSION_TIMEOUT_MINUTES=15        # Total session duration
+NEXT_PUBLIC_SESSION_REFRESH_INTERVAL_MINUTES=5 # Refresh interval
+NEXT_PUBLIC_ACTIVITY_TIMEOUT_MINUTES=14       # Activity timeout (1 min before expiry)
+```
+
+### How It Works
+
+1. **Session Initialization**: When a user signs in, a 15-minute session begins
+2. **Activity Monitoring**: User interactions reset the activity timer
+3. **Automatic Refresh**: Sessions refresh every 5 minutes if active
+4. **Smart Detection**: Sessions refresh when users return to the app
+5. **Graceful Expiry**: Users are logged out only after 15 minutes of inactivity
 
 ## Book Cover Fetching
 

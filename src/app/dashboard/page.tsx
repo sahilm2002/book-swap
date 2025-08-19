@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import BookCard from '@/components/BookCard'
 import ReviewModal from '@/components/ReviewModal'
 import { Book } from '@/types/book'
-import { ChevronLeft, ChevronRight, SortAsc, SortDesc } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SortAsc, SortDesc, Clock, Shield } from 'lucide-react'
 import { fetchBookCover } from '@/lib/bookCovers'
 import { fetchMissingCovers as fetchMissingCoversUtil } from '@/lib/bookCoverUtils'
 
@@ -28,6 +28,17 @@ function DashboardContent() {
   const [booksLoading, setBooksLoading] = useState(true)
   const [showSuccess, setShowSuccess] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ bookId: string; title: string } | null>(null)
+  
+  // Session status state
+  const [sessionStatus, setSessionStatus] = useState<{
+    isActive: boolean
+    expiresAt: Date | null
+    timeRemaining: string
+  }>({
+    isActive: false,
+    expiresAt: null,
+    timeRemaining: ''
+  })
   
   // Review modal state
   const [reviewModal, setReviewModal] = useState<{
@@ -55,6 +66,50 @@ function DashboardContent() {
   
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Session status tracking
+  useEffect(() => {
+    const updateSessionStatus = () => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          const expiresAt = new Date(session.expires_at! * 1000)
+          const now = new Date()
+          const timeRemaining = expiresAt.getTime() - now.getTime()
+          
+          if (timeRemaining > 0) {
+            const minutes = Math.floor(timeRemaining / (1000 * 60))
+            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000)
+            
+            setSessionStatus({
+              isActive: true,
+              expiresAt,
+              timeRemaining: `${minutes}m ${seconds}s`
+            })
+          } else {
+            setSessionStatus({
+              isActive: false,
+              expiresAt: null,
+              timeRemaining: 'Expired'
+            })
+          }
+        } else {
+          setSessionStatus({
+            isActive: false,
+            expiresAt: null,
+            timeRemaining: 'No session'
+          })
+        }
+      })
+    }
+
+    // Update immediately
+    updateSessionStatus()
+    
+    // Update every second
+    const interval = setInterval(updateSessionStatus, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const getUser = async () => {
@@ -565,16 +620,43 @@ function DashboardContent() {
               >
                 Browse Books
               </button>
-              <button 
-                onClick={async () => {
-                  console.log('Restoring book covers...')
-                  await fetchMissingCovers(books)
-                  console.log('Book covers restored!')
-                }}
-                className="btn-secondary w-full text-sm"
-              >
-                🔄 Restore Book Covers
-              </button>
+            </div>
+          </div>
+
+          {/* Session Status */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-amber-500" />
+              Session Status
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Status:</span>
+                <span className={`text-sm font-medium ${sessionStatus.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                  {sessionStatus.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {sessionStatus.expiresAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Expires:</span>
+                  <span className="text-sm text-gray-800">
+                    {sessionStatus.expiresAt.toLocaleTimeString()}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Time Remaining:</span>
+                <span className={`text-sm font-medium flex items-center gap-1 ${
+                  sessionStatus.isActive && sessionStatus.timeRemaining.includes('m') && 
+                  parseInt(sessionStatus.timeRemaining.split('m')[0]) < 5 ? 'text-amber-600' : 'text-gray-800'
+                }`}>
+                  <Clock className="w-4 h-4" />
+                  {sessionStatus.timeRemaining}
+                </span>
+              </div>
+              <div className="pt-2 text-xs text-gray-500 border-t">
+                Your session will stay active for 15 minutes without activity
+              </div>
             </div>
           </div>
         </div>
