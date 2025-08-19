@@ -345,47 +345,7 @@ function DashboardContent() {
     }
   }
 
-  const testDatabaseConnection = async () => {
-    try {
-      console.log('=== Testing Database Connection ===')
-      
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        console.log('No user authenticated')
-        return
-      }
-      
-      console.log('User authenticated:', user.id)
-      
-      // Test books table
-      const { data: booksData, error: booksError } = await supabase
-        .from('books')
-        .select('count')
-        .limit(1)
-      
-      if (booksError) {
-        console.error('Books table error:', booksError)
-      } else {
-        console.log('Books table accessible')
-      }
-      
-      // Test reviews table
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('count')
-        .limit(1)
-      
-      if (reviewsError) {
-        console.error('Reviews table error:', reviewsError)
-        console.log('Reviews table might not exist. Please run the database-schema.sql script in Supabase.')
-      } else {
-        console.log('Reviews table accessible')
-      }
-      
-    } catch (error) {
-      console.error('Database connection test error:', error)
-    }
-  }
+
 
   const clearAndRefetchAllCovers = async () => {
     try {
