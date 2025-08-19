@@ -11,6 +11,38 @@ interface GoogleBooksResponse {
   }>
 }
 
+// Helper function to enhance Google Books image URL quality
+function enhanceGoogleBooksImageUrl(url: string): string {
+  try {
+    const urlObj = new URL(url)
+    
+    // Check if this is a Google Books URL
+    if (urlObj.hostname.includes('books.google.com')) {
+      // Set zoom parameter to 2 for higher quality
+      urlObj.searchParams.set('zoom', '2')
+      
+      // Also try to get the best available image size
+      // Google Books often has multiple size options
+      if (urlObj.searchParams.has('img')) {
+        // Try to get a larger image if available
+        const currentImg = urlObj.searchParams.get('img')
+        if (currentImg && parseInt(currentImg) < 5) {
+          // Increment image size for better quality
+          urlObj.searchParams.set('img', String(parseInt(currentImg) + 1))
+        }
+      }
+      
+      return urlObj.toString()
+    }
+    
+    return url
+  } catch (error) {
+    // If URL parsing fails, return original URL
+    console.warn('Failed to enhance Google Books image URL:', error)
+    return url
+  }
+}
+
 export async function fetchBookCover(title: string, author?: string): Promise<string | null> {
   try {
     // Create search query
@@ -40,13 +72,13 @@ export async function fetchBookCover(title: string, author?: string): Promise<st
       
       // Return the best available image
       if (imageLinks?.thumbnail) {
-        // Convert thumbnail URL to higher quality
-        const thumbnailUrl = imageLinks.thumbnail
-        // Replace zoom=1 with zoom=2 for better quality
-        const highQualityUrl = thumbnailUrl.replace('zoom=1', 'zoom=2')
-        return highQualityUrl
+        // Enhance the thumbnail URL for better quality
+        const enhancedUrl = enhanceGoogleBooksImageUrl(imageLinks.thumbnail)
+        return enhancedUrl
       } else if (imageLinks?.smallThumbnail) {
-        return imageLinks.smallThumbnail
+        // Enhance the small thumbnail URL as well
+        const enhancedUrl = enhanceGoogleBooksImageUrl(imageLinks.smallThumbnail)
+        return enhancedUrl
       }
     }
     
