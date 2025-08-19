@@ -235,7 +235,7 @@ export default function BrowsePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
-      const existingReview = reviews.find(r => r.bookId === reviewData.bookId)
+      const existingReview = reviews.find(r => r.bookId === reviewData.bookId && r.userId === user.id)
       
       if (existingReview) {
         // Update existing review
@@ -283,14 +283,24 @@ export default function BrowsePage() {
     }
   }
 
-  const openReviewModal = (bookId: string, bookTitle: string) => {
-    const existingReview = reviews.find(r => r.bookId === bookId)
-    setReviewModal({
-      isOpen: true,
-      bookId,
-      bookTitle,
-      existingReview: existingReview || null
-    })
+  const openReviewModal = async (bookId: string, bookTitle: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('User not authenticated')
+        return
+      }
+      
+      const existingReview = reviews.find(r => r.bookId === bookId && r.userId === user.id)
+      setReviewModal({
+        isOpen: true,
+        bookId,
+        bookTitle,
+        existingReview: existingReview || null
+      })
+    } catch (error) {
+      console.error('Error opening review modal:', error)
+    }
   }
 
   const filteredBooks = books.filter(book => {
@@ -447,7 +457,7 @@ export default function BrowsePage() {
                   book={book}
                   onSwapRequest={handleSwapRequest}
                   onGenreClick={(genre) => setSelectedGenre(genre)}
-                  onReviewClick={(bookId) => openReviewModal(bookId, book.title)}
+                  onReviewClick={async (bookId) => await openReviewModal(bookId, book.title)}
                   showReviewButton={true}
                   averageRating={bookStat?.averageRating || 0}
                   reviewCount={bookStat?.reviewCount || 0}
