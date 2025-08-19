@@ -8,7 +8,7 @@ import { BookReview } from '@/types/book'
 interface ReviewModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (review: Omit<BookReview, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => void
+  onSubmit: (review: { bookId: string; rating: number; review: string }) => void
   bookTitle: string
   bookId: string // Add this prop for new reviews
   existingReview?: BookReview | null
