@@ -97,17 +97,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <button className="btn-primary w-full">
-                Add a Book
-              </button>
-              <button className="btn-secondary w-full">
-                Browse Books
-              </button>
-            </div>
-          </div>
+<div className="card">
+  <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+  <div className="space-y-3">
+    <button 
+      onClick={() => router.push('/add-book')}
+      className="btn-primary w-full"
+    >
+      Add a Book
+    </button>
+    <button 
+      onClick={() => router.push('/browse')}
+      className="btn-secondary w-full"
+    >
+      Browse Books
+    </button>
+  </div>
+</div>
         </div>
       </div>
     </div>
