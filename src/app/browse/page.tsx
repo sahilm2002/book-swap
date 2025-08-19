@@ -117,35 +117,71 @@ export default function BrowsePage() {
 
   const fetchMissingCovers = async (booksList: BookWithReviews[]) => {
     const booksWithoutCovers = booksList.filter(book => !book.coverImage)
+    if (booksWithoutCovers.length === 0) return
     
-    for (const book of booksWithoutCovers) {
-      if (coverLoading.has(book.id)) continue // Skip if already loading
+    const CONCURRENCY_LIMIT = 5 // Process 5 covers concurrently
+    
+    // Process books in batches to control concurrency
+    for (let i = 0; i < booksWithoutCovers.length; i += CONCURRENCY_LIMIT) {
+      const batch = booksWithoutCovers.slice(i, i + CONCURRENCY_LIMIT)
+      const batchIds = batch.map(book => book.id)
       
-      setCoverLoading(prev => new Set(prev).add(book.id))
+      // Mark all batch IDs as loading in a single state update
+      setCoverLoading(prev => {
+        const newSet = new Set(prev)
+        batchIds.forEach(id => newSet.add(id))
+        return newSet
+      })
       
-      try {
-        const coverUrl = await fetchBookCover(book.title, book.author)
-        if (coverUrl) {
-          // Update the book in the database
-          await supabase
-            .from('books')
-            .update({ cover_image: coverUrl })
-            .eq('id', book.id)
-          
-          // Update the local state
-          setBooks(prev => prev.map(b => 
-            b.id === book.id ? { ...b, coverImage: coverUrl } : b
-          ))
+      // Process batch concurrently
+      const batchPromises = batch.map(async (book) => {
+        try {
+          const coverUrl = await fetchBookCover(book.title, book.author)
+          if (coverUrl) {
+            // Update the book in the database
+            await supabase
+              .from('books')
+              .update({ cover_image: coverUrl })
+              .eq('id', book.id)
+            
+            // Update the local state immutably
+            setBooks(prev => prev.map(b => 
+              b.id === book.id ? { ...b, coverImage: coverUrl } : b
+            ))
+            
+            return { success: true, bookId: book.id, coverUrl }
+          }
+          return { success: false, bookId: book.id, error: 'No cover found' }
+                 } catch (error) {
+           console.error(`Failed to fetch cover for ${book.title}:`, error)
+           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+           return { success: false, bookId: book.id, error: errorMessage }
+         }
+      })
+      
+      // Wait for all promises in the batch to settle
+      const results = await Promise.allSettled(batchPromises)
+      
+      // Log results for debugging
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          const { success, bookId, coverUrl, error } = result.value
+          if (success) {
+            console.log(`Successfully fetched cover for book ${bookId}`)
+          } else {
+            console.warn(`No cover found for book ${bookId}: ${error}`)
+          }
+        } else {
+          console.error(`Promise rejected for book in batch:`, result.reason)
         }
-      } catch (error) {
-        console.error(`Failed to fetch cover for ${book.title}:`, error)
-      } finally {
-        setCoverLoading(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(book.id)
-          return newSet
-        })
-      }
+      })
+      
+      // Remove all batch IDs from coverLoading in a single state update
+      setCoverLoading(prev => {
+        const newSet = new Set(prev)
+        batchIds.forEach(id => newSet.delete(id))
+        return newSet
+      })
     }
   }
 
