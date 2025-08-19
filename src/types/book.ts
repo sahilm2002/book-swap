@@ -77,6 +77,16 @@ export interface Review {
   createdAt: Date
 }
 
+export interface BookReview {
+  id?: string
+  bookId: string
+  userId?: string
+  rating: number
+  review: string
+  createdAt?: Date
+  updatedAt?: Date
+}
+
 export enum BookCondition {
   NEW = 'new',
   LIKE_NEW = 'like_new',

@@ -12,7 +12,7 @@ export default function Navigation() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Browse', href: '/browse' },
-    { name: 'Literary Society', href: '/literary-society' },
+    { name: 'Literary Society', href: '/community' },
     { name: 'About', href: '/about' },
   ]
 
