@@ -114,14 +114,7 @@ export default function ReviewModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Debug Info - Remove this after fixing */}
-          <div className="bg-yellow-50 p-3 rounded text-xs border border-yellow-200">
-            <p><strong>Debug Info:</strong></p>
-            <p>Rating: {rating} {rating === 0 ? '❌' : '✅'}</p>
-            <p>Review Length: {review.length} characters</p>
-            <p>Trimmed Length: {review.trim().length} characters {review.trim().length < 10 ? '❌' : '✅'}</p>
-            <p>Submit Button Disabled: {rating === 0 || review.trim().length < 10 ? 'Yes' : 'No'}</p>
-          </div>
+
           
           {/* Rating */}
           <div>
