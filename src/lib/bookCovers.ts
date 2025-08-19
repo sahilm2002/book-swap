@@ -135,11 +135,15 @@ function setCache(title: string, author: string | undefined, url: string): void 
   // Clean up old entries if cache gets too large
   if (coverCache.size > 1000) {
     const now = Date.now()
-    for (const [key, entry] of coverCache.entries()) {
+    const keysToDelete: string[] = []
+    
+    coverCache.forEach((entry, key) => {
       if (now - entry.timestamp > CACHE_TTL_MS) {
-        coverCache.delete(key)
+        keysToDelete.push(key)
       }
-    }
+    })
+    
+    keysToDelete.forEach(key => coverCache.delete(key))
   }
 }
 
