@@ -565,16 +565,6 @@ function DashboardContent() {
               >
                 Browse Books
               </button>
-              <button 
-                onClick={async () => {
-                  console.log('Restoring book covers...')
-                  await fetchMissingCovers(books)
-                  console.log('Book covers restored!')
-                }}
-                className="btn-secondary w-full text-sm"
-              >
-                🔄 Restore Book Covers
-              </button>
             </div>
           </div>
         </div>
