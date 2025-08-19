@@ -1,74 +1,76 @@
-# Book Swap 📚
+# Book Swap Platform
 
-A platform for book lovers to discover, share, and exchange books with other readers in their community.
+A modern book swapping platform built with Next.js, Supabase, and Tailwind CSS.
 
 ## Features
 
-- **Book Discovery**: Browse available books by genre, author, or location
-- **User Profiles**: Create profiles to showcase your book collection and preferences
-- **Book Exchange**: Request and exchange books with other users
-- **Community**: Connect with fellow book lovers in your area
-- **Rating System**: Rate books and users to build trust in the community
+- User authentication and profiles
+- Add, browse, and manage books
+- Book cover fetching from Google Books API
+- Rating and review system
+- Swap requests and management
+- Responsive design with "Books & Booze" theme
+
+## Book Cover Fetching
+
+The platform automatically fetches book covers from Google Books API when users add books. This feature includes:
+
+### Configuration
+
+1. **Get a Google Books API Key**:
+   - Visit [Google Cloud Console](https://console.cloud.google.com/)
+   - Enable the Google Books API
+   - Create credentials (API Key)
+   - Add the key to your environment variables
+
+2. **Environment Variables**:
+   ```bash
+   # Required for book cover fetching
+   NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY=your_api_key_here
+   
+   # Optional configuration
+   BOOK_COVERS_CONCURRENCY=3          # Max concurrent requests
+   BOOK_COVERS_CACHE_TTL=3600000     # Cache TTL in milliseconds (1 hour)
+   BOOK_COVERS_MAX_RETRIES=3         # Max retry attempts
+   BOOK_COVERS_RETRY_DELAY=1000      # Base retry delay in milliseconds
+   ```
+
+### Features
+
+- **Rate Limiting**: Configurable concurrency limits to respect API quotas
+- **Retry Logic**: Exponential backoff with jitter for failed requests
+- **Caching**: In-memory cache to avoid repeated requests for the same book
+- **Error Handling**: Graceful fallbacks and comprehensive error logging
+- **Batch Processing**: Efficient batch fetching for multiple books
+
+### Security
+
+- API keys are read from environment variables
+- Rate limiting prevents abuse
+- User-Agent headers for request identification
+- Secure error handling without exposing sensitive information
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-- Git
-
-### Installation
-
 1. Clone the repository
-```bash
-git clone https://github.com/yourusername/book-swap.git
-cd book-swap
-```
+2. Install dependencies: `npm install`
+3. Copy `env.example` to `.env.local` and fill in your configuration
+4. Run the development server: `npm run dev`
+5. Open [http://localhost:3000](http://localhost:3000)
 
-2. Install dependencies
-```bash
-npm install
-```
+## Database Setup
 
-3. Set up environment variables
-```bash
-cp env.example .env
-# Edit .env with your configuration
-```
-
-4. Run the development server
-```bash
-npm run dev
-```
-
-## Tech Stack
-
-- **Frontend**: React/Next.js
-- **Backend**: Node.js/Express
-- **Database**: PostgreSQL
-- **Authentication**: Supabase Auth
-- **Styling**: Tailwind CSS
-- **Deployment**: Vercel
+1. Run the SQL scripts in the correct order:
+   - `common-triggers.sql` (shared functions)
+   - `database-schema.sql` (core tables)
+   - `book-reviews-schema.sql` (review system)
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-- Project Link: [https://github.com/yourusername/book-swap](https://github.com/yourusername/book-swap)
-- Issues: [https://github.com/yourusername/book-swap/issues](https://github.com/yourusername/book-swap/issues)
-
-## Acknowledgments
-
-- Inspired by the joy of sharing books and building reading communities
-- Built with modern web technologies for the best user experience
+This project is licensed under the MIT License.
