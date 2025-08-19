@@ -266,7 +266,7 @@ export default function BrowsePage() {
 
   const handleSwapRequest = (bookId: string) => {
     // TODO: Implement swap request functionality
-    console.log(`Swap requested for book: ${bookId}`)
+    // Swap request functionality will be implemented in future updates
   }
 
   const clearFilters = () => {
