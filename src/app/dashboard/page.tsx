@@ -8,6 +8,7 @@ import ReviewModal from '@/components/ReviewModal'
 import { Book } from '@/types/book'
 import { ChevronLeft, ChevronRight, SortAsc, SortDesc } from 'lucide-react'
 import { fetchBookCover } from '@/lib/bookCovers'
+import { fetchMissingCovers as fetchMissingCoversUtil } from '@/lib/bookCoverUtils'
 
 interface Review {
   id: string
@@ -379,51 +380,24 @@ function DashboardContent() {
   }
 
   const fetchMissingCovers = async (booksList: Book[]) => {
-    const booksWithoutCovers = booksList.filter(book => !book.coverImage)
-    
-    console.log('Fetching missing covers for books:', booksWithoutCovers.map(b => ({ title: b.title, hasCover: !!b.coverImage })))
-    
-    for (const book of booksWithoutCovers) {
-      if (coverLoading.has(book.id)) continue // Skip if already loading
-      
-      setCoverLoading(prev => new Set(prev).add(book.id))
-      
-      try {
-        console.log(`Fetching cover for: ${book.title} by ${book.author}`)
-        const coverUrl = await fetchBookCover(book.title, book.author)
-        
-        if (coverUrl) {
-          console.log(`Found cover for ${book.title}:`, coverUrl)
-          
-          // Update the book in the database
-          const { error } = await supabase
-            .from('books')
-            .update({ cover_image: coverUrl })
-            .eq('id', book.id)
-          
-          if (error) {
-            console.error(`Error updating cover in database for ${book.title}:`, error)
-          } else {
-            console.log(`Successfully updated cover in database for ${book.title}`)
-            
-            // Update the local state
-            setBooks(prev => prev.map(b => 
-              b.id === book.id ? { ...b, coverImage: coverUrl } : b
-            ))
-          }
-        } else {
-          console.log(`No cover found for ${book.title}`)
-        }
-      } catch (error) {
-        console.error(`Failed to fetch cover for ${book.title}:`, error)
-      } finally {
+    await fetchMissingCoversUtil(booksList, {
+      onUpdate: (bookId: string, coverUrl: string) => {
+        setBooks(prev => prev.map(b => 
+          b.id === bookId ? { ...b, coverImage: coverUrl } : b
+        ))
+      },
+      onLoadingChange: (bookId: string, isLoading: boolean) => {
         setCoverLoading(prev => {
           const newSet = new Set(prev)
-          newSet.delete(book.id)
+          if (isLoading) {
+            newSet.add(bookId)
+          } else {
+            newSet.delete(bookId)
+          }
           return newSet
         })
       }
-    }
+    })
   }
 
   // Get all unique genres from user's books
