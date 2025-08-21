@@ -66,14 +66,14 @@ export default function SwapHistoryPage() {
         id: swap.id,
         book_given_id: swap.book_given_id,
         book_received_id: swap.book_received_id,
-        book_given_title: swap.books_given?.title || 'Unknown Book',
-        book_given_author: swap.books_given?.author || 'Unknown Author',
-        book_received_title: swap.books_received?.title || 'Unknown Book',
-        book_received_author: swap.books_received?.author || 'Unknown Author',
+        book_given_title: (swap.books_given as any)?.title || 'Unknown Book',
+        book_given_author: (swap.books_given as any)?.author || 'Unknown Author',
+        book_received_title: (swap.books_received as any)?.title || 'Unknown Book',
+        book_received_author: (swap.books_received as any)?.author || 'Unknown Author',
         swap_date: swap.swap_date,
         status: swap.status,
-        partner_name: swap.partner?.full_name,
-        partner_email: swap.partner?.email
+        partner_name: (swap.partner as any)?.full_name,
+        partner_email: (swap.partner as any)?.email
       })) || []
       
       setSwaps(transformedSwaps)
