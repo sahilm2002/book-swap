@@ -17,7 +17,7 @@ export default function ProfilePage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileForm, setProfileForm] = useState({
     full_name: profile?.full_name || '',
-    address: profile?.address || profile?.location || '' // Handle both address and location fields
+    address: profile?.address || '' // Only use address field
   })
   
   // Password change state
@@ -78,7 +78,7 @@ export default function ProfilePage() {
         throw checkError
       }
       
-      let result
+      let result: any
       if (existingUser) {
         // Update existing user
         console.log('Updating existing user record...')
@@ -119,7 +119,7 @@ export default function ProfilePage() {
       
       console.log('Database operation result:', result)
       
-      if (result.error) {
+      if (result && result.error) {
         console.error('Database operation error:', result.error)
         throw result.error
       }
@@ -157,7 +157,7 @@ export default function ProfilePage() {
       setIsEditingProfile(false)
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
       console.log('Profile update completed successfully')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error)
       setMessage({ type: 'error', text: `Failed to update profile: ${error.message || 'Unknown error'}` })
     } finally {
@@ -321,7 +321,7 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-gray-500 mb-1">
                       Address
                     </label>
-                    <p className="text-gray-900">{profile?.address || profile?.location || 'Not set'}</p>
+                    <p className="text-gray-900">{profile?.address || 'Not set'}</p>
                   </div>
                   
                   <div>
