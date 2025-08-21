@@ -38,7 +38,7 @@ export default function SignupForm() {
               email,
               username,
               full_name: fullName,
-              location,
+              address: location, // Map location to address field
             }
           ])
 

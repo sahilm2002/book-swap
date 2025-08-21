@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { BookCondition } from '@/types/book'
-import { fetchBookCover } from '@/lib/bookCovers'
 
 export default function AddBookForm() {
   const [title, setTitle] = useState('')
@@ -13,7 +12,6 @@ export default function AddBookForm() {
   const [genre, setGenre] = useState<string[]>([])
   const [description, setDescription] = useState('')
   const [publishedYear, setPublishedYear] = useState('')
-  const [pageCount, setPageCount] = useState('')
   const [language, setLanguage] = useState('English')
   const [condition, setCondition] = useState<BookCondition>(BookCondition.GOOD)
   const [state, setState] = useState('')
@@ -21,7 +19,6 @@ export default function AddBookForm() {
   const [zipCode, setZipCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [coverLoading, setCoverLoading] = useState(false)
   const router = useRouter()
 
   const genres = [
@@ -56,6 +53,39 @@ export default function AddBookForm() {
     setLoading(true)
     setError('')
 
+    console.log('Form submission started with data:', {
+      title,
+      author,
+      isbn,
+      genre,
+      description,
+      publishedYear,
+      language,
+      condition,
+      state,
+      city,
+      zipCode
+    })
+
+    // Validate required fields
+    if (!title.trim()) {
+      setError('Book title is required')
+      setLoading(false)
+      return
+    }
+
+    if (!author.trim()) {
+      setError('Author is required')
+      setLoading(false)
+      return
+    }
+
+    if (genre.length === 0) {
+      setError('Please select at least one genre')
+      setLoading(false)
+      return
+    }
+
     // Validate location fields
     if (!state || !city || !zipCode) {
       setError('Please fill in all location fields (State, City, and ZIP Code)')
@@ -63,53 +93,65 @@ export default function AddBookForm() {
       return
     }
 
+    // Validate published year if provided
+    if (publishedYear && (parseInt(publishedYear) < 1000 || parseInt(publishedYear) > new Date().getFullYear())) {
+      setError('Published year must be between 1000 and current year')
+      setLoading(false)
+      return
+    }
+
+    // Add timeout to prevent form from getting stuck
+    const timeoutId = setTimeout(() => {
+      console.warn('Form submission timeout - forcing loading to false')
+      setLoading(false)
+      setError('Form submission timed out. Please try again.')
+    }, 30000) // 30 second timeout
+
     try {
+      console.log('Getting user from Supabase...')
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
-      // Try to fetch book cover automatically
-      let coverImage = null
-      if (title && author) {
-        setCoverLoading(true)
-        try {
-          coverImage = await fetchBookCover(title, author)
-        } catch (coverError) {
-          console.log('Could not fetch book cover:', coverError)
-          // Continue without cover - not a critical error
-        } finally {
-          setCoverLoading(false)
-        }
-      }
+      console.log('User authenticated:', user.id)
 
       const bookLocation = `${city}, ${state} ${zipCode}`.trim()
       
+      const bookData = {
+        title: title.trim(),
+        author: author.trim(),
+        isbn: isbn.trim() || null,
+        genre,
+        description: description.trim() || null,
+        published_year: publishedYear ? parseInt(publishedYear) : null,
+        language,
+        condition,
+        owner_id: user.id,
+        location: bookLocation,
+        available_for_swap: true,
+      }
+
+      console.log('Inserting book data:', bookData)
+      
       const { error: insertError } = await supabase
         .from('books')
-        .insert([
-          {
-            title,
-            author,
-            isbn: isbn || null,
-            genre,
-            description: description || null,
-            published_year: publishedYear ? parseInt(publishedYear) : null,
-            page_count: pageCount ? parseInt(pageCount) : null,
-            language,
-            condition,
-            owner_id: user.id,
-            location: bookLocation,
-            available_for_swap: true,
-            cover_image: coverImage
-          }
-        ])
+        .insert([bookData])
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('Database insert error:', insertError)
+        throw insertError
+      }
 
+      console.log('Book inserted successfully, redirecting to dashboard...')
+      // Clear timeout since we succeeded
+      clearTimeout(timeoutId)
       // Redirect to dashboard with success message
       router.push('/dashboard?success=book-added')
     } catch (error: any) {
-      setError(error.message)
+      console.error('Form submission error:', error)
+      setError(error.message || 'An unexpected error occurred')
     } finally {
+      console.log('Setting loading to false')
+      clearTimeout(timeoutId)
       setLoading(false)
     }
   }
@@ -204,37 +246,22 @@ export default function AddBookForm() {
             </div>
 
             <div>
-              <label htmlFor="pageCount" className="block text-sm font-medium text-amber-200 mb-2">
-                Page Count (Optional)
+              <label htmlFor="condition" className="block text-sm font-medium text-amber-200 mb-2">
+                Book Condition *
               </label>
-              <input
-                type="number"
-                id="pageCount"
-                value={pageCount}
-                onChange={(e) => setPageCount(e.target.value)}
-                min="1"
+              <select
+                id="condition"
+                value={condition}
+                onChange={(e) => setCondition(e.target.value as BookCondition)}
                 className="input-field"
-                placeholder="e.g., 320"
-              />
+              >
+                {conditions.map(cond => (
+                  <option key={cond} value={cond}>
+                    {cond.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="condition" className="block text-sm font-medium text-amber-200 mb-2">
-              Book Condition *
-            </label>
-            <select
-              id="condition"
-              value={condition}
-              onChange={(e) => setCondition(e.target.value as BookCondition)}
-              className="input-field"
-            >
-              {conditions.map(cond => (
-                <option key={cond} value={cond}>
-                  {cond.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -322,35 +349,6 @@ export default function AddBookForm() {
               className="input-field"
               placeholder="Tell others about this literary treasure..."
             />
-          </div>
-
-          {/* Book Cover Info */}
-          <div className="glass-effect rounded-xl p-6 border-amber-500/30">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-amber-200">Automatic Book Cover</h3>
-                <div className="mt-2 text-slate-300">
-                  <p>
-                    {coverLoading ? (
-                      <span className="flex items-center text-amber-400">
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Fetching book cover...
-                      </span>
-                    ) : (
-                      "We'll automatically try to find the book cover for you when you submit the form. Make sure the title and author are accurate for the best results."
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {error && (

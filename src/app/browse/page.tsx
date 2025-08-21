@@ -9,6 +9,7 @@ import { Book, BookCondition } from '@/types/book'
 import { supabase } from '@/lib/supabase'
 import { fetchBookCover } from '@/lib/bookCovers'
 import { fetchMissingCovers as fetchMissingCoversUtil } from '@/lib/bookCoverUtils'
+import { useAuth } from '@/lib/auth-context'
 
 interface Review {
   id: string
@@ -28,6 +29,7 @@ interface BookWithReviews extends Book {
 
 export default function BrowsePage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [books, setBooks] = useState<BookWithReviews[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,8 +58,11 @@ export default function BrowsePage() {
   const conditions = Object.values(BookCondition)
 
   useEffect(() => {
-    fetchBooks()
-  }, [])
+    // Only fetch books when auth is not loading and user is available
+    if (!authLoading) {
+      fetchBooks()
+    }
+  }, [authLoading])
 
   const fetchBooks = async () => {
     try {
@@ -85,6 +90,7 @@ export default function BrowsePage() {
         id: book.id,
         title: book.title,
         author: book.author,
+        isbn: book.isbn,
         genre: book.genre || [],
         description: book.description,
         coverImage: book.cover_image || null,
@@ -184,7 +190,6 @@ export default function BrowsePage() {
 
   const handleReviewSubmit = async (reviewData: { bookId: string; rating: number; review: string }) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
       const existingReview = reviews.find(r => r.bookId === reviewData.bookId && r.userId === user.id)
@@ -237,9 +242,9 @@ export default function BrowsePage() {
 
   const openReviewModal = async (bookId: string, bookTitle: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         console.error('User not authenticated')
+        router.push('/auth/login')
         return
       }
       
@@ -273,6 +278,18 @@ export default function BrowsePage() {
     setSearchQuery('')
     setSelectedGenre('')
     setSelectedCondition('')
+  }
+
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
