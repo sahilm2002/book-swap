@@ -67,11 +67,15 @@ export default function ProfilePage() {
       console.log('Checking if user record exists...')
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
-        .select('id')
+        .select('*') // Select all fields to see what's there
         .eq('id', user.id)
         .single()
       
       console.log('User existence check result:', { existingUser, checkError })
+      
+      if (existingUser) {
+        console.log('Current user profile data:', existingUser)
+      }
       
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error checking user existence:', checkError)
@@ -79,17 +83,36 @@ export default function ProfilePage() {
       }
       
       let result: any
-      if (existingUser) {
-        // Update existing user
-        console.log('Updating existing user record...')
+      // Use upsert to handle both insert and update cases automatically
+      console.log('Upserting user record (insert or update)...')
+      
+      // First, let's try to find any existing user with this email
+      const { data: existingEmailUser, error: emailCheckError } = await supabase
+        .from('users')
+        .select('id, email, username')
+        .eq('email', user.email)
+        .maybeSingle()
+      
+      if (emailCheckError) {
+        console.error('Error checking for existing email:', emailCheckError)
+        throw emailCheckError
+      }
+      
+      if (existingEmailUser && existingEmailUser.id !== user.id) {
+        console.log('Found existing user with same email but different ID:', existingEmailUser)
+        console.log('Current user ID:', user.id)
+        // We need to handle this case - either update the existing record or create a new one
+        // For now, let's try to update the existing record to match the current user
         const updatePromise = supabase
           .from('users')
           .update({
+            id: user.id, // Update the ID to match the current user
+            username: user.email?.split('@')[0] || 'user',
             full_name: profileForm.full_name,
             address: profileForm.address,
             updated_at: new Date().toISOString()
           })
-          .eq('id', user.id)
+          .eq('email', user.email)
         
         const updateTimeout = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Update operation timeout')), 5000)
@@ -97,30 +120,39 @@ export default function ProfilePage() {
         
         result = await Promise.race([updatePromise, updateTimeout])
       } else {
-        // Insert new user record
-        console.log('Inserting new user record...')
-        const insertPromise = supabase
+        // Normal upsert case
+        const upsertPromise = supabase
           .from('users')
-          .insert({
+          .upsert({
             id: user.id,
             email: user.email,
+            username: user.email?.split('@')[0] || 'user',
             full_name: profileForm.full_name,
             address: profileForm.address,
-            created_at: new Date().toISOString(),
+            created_at: existingUser ? existingUser.created_at : new Date().toISOString(),
             updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'id' // Handle conflicts on the primary key (id)
           })
         
-        const insertTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Insert operation timeout')), 5000)
+        const upsertTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Upsert operation timeout')), 5000)
         )
         
-        result = await Promise.race([insertPromise, insertTimeout])
+        result = await Promise.race([upsertPromise, upsertTimeout])
       }
       
       console.log('Database operation result:', result)
       
       if (result && result.error) {
         console.error('Database operation error:', result.error)
+        // Log more details about the error
+        if (result.error.details) {
+          console.error('Error details:', result.error.details)
+        }
+        if (result.error.hint) {
+          console.error('Error hint:', result.error.hint)
+        }
         throw result.error
       }
       
