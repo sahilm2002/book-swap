@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { BookOpen, Menu, X, Wine, User, Settings, History, LogOut, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import Notifications from './Notifications'
 
 export default function Navigation() {
   const { user, profile, signOut, updateUserActivity } = useAuth()
@@ -77,88 +78,93 @@ export default function Navigation() {
           {/* Auth Buttons / User Profile */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
-              <div className="relative" ref={profileDropdownRef}>
-                <button
-                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center space-x-2 nav-link hover:bg-amber-500/10 rounded-lg px-3 py-2 transition-all duration-200"
-                >
-                  <User className="w-5 h-5" />
-                  <span>{profile?.full_name || user.email?.split('@')[0] || 'User'}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+              <>
+                {/* Notifications */}
+                <Notifications />
                 
-                {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-amber-500/20 rounded-lg shadow-xl z-50">
-                    <div className="p-4 border-b border-amber-500/20">
-                      <p className="text-amber-200 font-medium">{profile?.full_name || 'User'}</p>
-                      <p className="text-slate-400 text-sm">{user.email}</p>
-                    </div>
-                    
-                    <div className="p-2">
-                      <Link
-                        href="/profile"
-                        className="flex items-center space-x-3 w-full px-3 py-2 text-slate-300 hover:text-amber-200 hover:bg-amber-500/10 rounded-md transition-all duration-200"
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>My Account</span>
-                      </Link>
+                <div className="relative" ref={profileDropdownRef}>
+                  <button
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className="flex items-center space-x-2 nav-link hover:bg-amber-500/10 rounded-lg px-3 py-2 transition-all duration-200"
+                  >
+                    <User className="w-5 h-5" />
+                    <span>{profile?.full_name || user.email?.split('@')[0] || 'User'}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {isProfileDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-amber-500/20 rounded-lg shadow-xl z-50">
+                      <div className="p-4 border-b border-amber-500/20">
+                        <p className="text-amber-200 font-medium">{profile?.full_name || 'User'}</p>
+                        <p className="text-slate-400 text-sm">{user.email}</p>
+                      </div>
                       
-                      <Link
-                        href="/swap-history"
-                        className="flex items-center space-x-3 w-full px-3 py-2 text-slate-300 hover:text-amber-200 hover:bg-amber-500/10 rounded-md transition-all duration-200"
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                      >
-                        <History className="w-4 h-4" />
-                        <span>Swap History</span>
-                      </Link>
-                      
-                      <button
-                        onClick={async () => {
-                          try {
-                            console.log('Logout button clicked')
-                            setIsLoggingOut(true)
-                            
-                            // Add timeout to prevent hanging
-                            const logoutTimeout = setTimeout(() => {
-                              console.warn('Logout timeout - forcing logout')
-                              setIsLoggingOut(false)
+                      <div className="p-2">
+                        <Link
+                          href="/profile"
+                          className="flex items-center space-x-3 w-full px-3 py-2 text-slate-300 hover:text-amber-200 hover:bg-amber-500/10 rounded-md transition-all duration-200"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>My Account</span>
+                        </Link>
+                        
+                        <Link
+                          href="/swap-history"
+                          className="flex items-center space-x-3 w-full px-3 py-2 text-slate-300 hover:text-amber-200 hover:bg-amber-500/10 rounded-md transition-all duration-200"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                        >
+                          <History className="w-4 h-4" />
+                          <span>Swap History</span>
+                        </Link>
+                        
+                        <button
+                          onClick={async () => {
+                            try {
+                              console.log('Logout button clicked')
+                              setIsLoggingOut(true)
+                              
+                              // Add timeout to prevent hanging
+                              const logoutTimeout = setTimeout(() => {
+                                console.warn('Logout timeout - forcing logout')
+                                setIsLoggingOut(false)
+                                setIsProfileDropdownOpen(false)
+                                window.location.replace('/')
+                              }, 5000) // 5 second timeout
+                              
+                              // Call the signOut function
+                              await signOut()
+                              
+                              // Clear timeout if successful
+                              clearTimeout(logoutTimeout)
+                              
+                              console.log('SignOut completed, closing dropdown and redirecting...')
                               setIsProfileDropdownOpen(false)
+                              
+                              // Force a hard redirect to clear any cached state
                               window.location.replace('/')
-                            }, 5000) // 5 second timeout
-                            
-                            // Call the signOut function
-                            await signOut()
-                            
-                            // Clear timeout if successful
-                            clearTimeout(logoutTimeout)
-                            
-                            console.log('SignOut completed, closing dropdown and redirecting...')
-                            setIsProfileDropdownOpen(false)
-                            
-                            // Force a hard redirect to clear any cached state
-                            window.location.replace('/')
-                          } catch (error) {
-                            console.error('Error during logout process:', error)
-                            setIsLoggingOut(false)
-                            // Show error to user
-                            alert('Error signing out. Please try again.')
-                          }
-                        }}
-                        disabled={isLoggingOut}
-                        className="flex items-center space-x-3 w-full px-3 py-2 text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isLoggingOut ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
-                        ) : (
-                          <LogOut className="w-4 h-4" />
-                        )}
-                        <span>{isLoggingOut ? 'Signing Out...' : 'Log Out'}</span>
-                      </button>
+                            } catch (error) {
+                              console.error('Error during logout process:', error)
+                              setIsLoggingOut(false)
+                              // Show error to user
+                              alert('Error signing out. Please try again.')
+                            }
+                          }}
+                          disabled={isLoggingOut}
+                          className="flex items-center space-x-3 w-full px-3 py-2 text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoggingOut ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+                          ) : (
+                            <LogOut className="w-4 h-4" />
+                          )}
+                          <span>{isLoggingOut ? 'Signing Out...' : 'Log Out'}</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             ) : (
               <>
                 <Link
