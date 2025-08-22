@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
+import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { History, BookOpen, Calendar, MapPin, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -22,58 +21,124 @@ interface SwapRecord {
 }
 
 export default function SwapHistoryPage() {
-  const { user } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [swaps, setSwaps] = useState<SwapRecord[]>([])
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending' | 'cancelled'>('all')
 
+  // Check authentication status on component mount
   useEffect(() => {
-    if (!user) {
-      router.push('/auth/login')
-      return
+    console.log('=== SwapHistory useEffect triggered ===')
+    // Reset state when component mounts
+    setLoading(true)
+    setSwaps([])
+    
+    // Direct auth check with timeout
+    const checkAuth = async () => {
+      try {
+        console.log('Checking auth directly...')
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          console.error('Auth error:', error)
+          setUser(null)
+          router.push('/auth/login')
+        } else {
+          console.log('User found:', user?.email)
+          setUser(user)
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        setUser(null)
+        router.push('/auth/login')
+      } finally {
+        setAuthLoading(false)
+      }
     }
     
-    fetchSwapHistory()
-  }, [user, router])
+    // Add timeout to prevent hanging
+    const authPromise = checkAuth()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+    )
+    
+    Promise.race([authPromise, timeoutPromise]).catch(() => {
+      console.warn('Auth check timed out, redirecting to login')
+      setUser(null)
+      setAuthLoading(false)
+      router.push('/auth/login')
+    })
+    
+    // Cleanup function
+    return () => {
+      console.log('SwapHistory page unmounting - cleaning up state')
+      setLoading(false)
+      setAuthLoading(true)
+      setUser(null)
+      setSwaps([])
+    }
+  }, [router])
+
+  // Handle navigation changes
+  useEffect(() => {
+    console.log('Pathname changed to:', pathname)
+    // Reset loading state when navigating to this page
+    if (pathname === '/swap-history') {
+      console.log('Navigated to swap-history page - resetting state')
+      setLoading(true)
+      setSwaps([])
+    }
+  }, [pathname])
+
+  // Fetch swap history when auth is not loading
+  useEffect(() => {
+    console.log('=== fetchSwapHistory useEffect triggered ===')
+    console.log('Auth loading:', authLoading)
+    console.log('User:', user)
+    
+    // Only fetch swaps when auth is not loading
+    if (!authLoading) {
+      if (user) {
+        console.log('Calling fetchSwapHistory...')
+        fetchSwapHistory()
+      } else {
+        console.log('No user, setting loading to false')
+        setLoading(false)
+      }
+    } else {
+      console.log('Auth still loading, skipping fetchSwapHistory')
+    }
+  }, [authLoading, user?.id])
 
   const fetchSwapHistory = async () => {
-    if (!user) return
-    
     try {
       setLoading(true)
       
-      // Fetch swaps where user is either the giver or receiver
+      // Fetch swaps where user is either the requester or book owner
       const { data: swapsData, error } = await supabase
         .from('book_swaps')
-        .select(`
-          id,
-          book_given_id,
-          book_received_id,
-          swap_date,
-          status,
-          books_given:books!book_swaps_book_given_id_fkey(title, author),
-          books_received:books!book_swaps_book_received_id_fkey(title, author),
-          partner:users!book_swaps_partner_id_fkey(full_name, email)
-        `)
-        .or(`giver_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order('swap_date', { ascending: false })
+        .select('*')
+        .or(`requester_id.eq.${user.id},book_requested_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
       
       if (error) throw error
       
       // Transform the data to match our interface
       const transformedSwaps: SwapRecord[] = swapsData?.map(swap => ({
         id: swap.id,
-        book_given_id: swap.book_given_id,
-        book_received_id: swap.book_received_id,
-        book_given_title: (swap.books_given as any)?.title || 'Unknown Book',
-        book_given_author: (swap.books_given as any)?.author || 'Unknown Author',
-        book_received_title: (swap.books_received as any)?.title || 'Unknown Book',
-        book_received_author: (swap.books_received as any)?.author || 'Unknown Author',
-        swap_date: swap.swap_date,
+        book_given_id: swap.book_offered_id,
+        book_received_id: swap.book_requested_id,
+        book_given_title: 'Book Offered', // We'll need to fetch book details separately
+        book_given_author: 'Author',
+        book_received_title: 'Book Requested',
+        book_received_author: 'Author',
+        swap_date: swap.created_at,
         status: swap.status,
-        partner_name: (swap.partner as any)?.full_name,
-        partner_email: (swap.partner as any)?.email
+        partner_name: 'Swap Partner',
+        partner_email: 'partner@example.com'
       })) || []
       
       setSwaps(transformedSwaps)
