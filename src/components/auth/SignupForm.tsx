@@ -8,8 +8,6 @@ export default function SignupForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [location, setLocation] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -37,8 +35,6 @@ export default function SignupForm() {
               id: authData.user.id,
               email,
               username,
-              full_name: fullName,
-              address: location, // Map location to address field
             }
           ])
 
@@ -93,35 +89,6 @@ export default function SignupForm() {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            required
-            className="input-field"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="fullName"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            className="input-field"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-            Location
-          </label>
-          <input
-            type="text"
-            id="location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="City, State/Country"
             required
             className="input-field"
           />
