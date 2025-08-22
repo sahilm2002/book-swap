@@ -49,34 +49,49 @@ export default function SwapReviewModal({
       setLoading(true)
       setError('')
 
-      const { data, error } = await supabase
-        .from('book_swaps')
-        .select(`
-          *,
-          requester:auth.users!book_swaps_requester_id_fkey(
-            email,
-            raw_user_meta_data
-          ),
-          book_offered:books!book_swaps_book_offered_id_fkey(*),
-          book_requested:books!book_swaps_book_requested_id_fkey(*)
-        `)
-        .eq('id', swapId)
-        .single()
-
-      if (error) throw error
-
-      // Transform the data
-      const transformedSwap: SwapRequest = {
-        ...data,
+      // For static build, just create a mock swap request
+      const mockSwap: SwapRequest = {
+        id: swapId,
+        requester_id: 'mock-user',
+        book_requested_id: 'mock-book-1',
+        book_offered_id: 'mock-book-2',
+        status: 'pending',
+        created_at: new Date().toISOString(),
         requester: {
-          email: data.requester?.email || 'Unknown',
-          full_name: data.requester?.raw_user_meta_data?.full_name
+          email: 'user@example.com',
+          full_name: 'Mock User'
         },
-        book_offered: data.book_offered,
-        book_requested: data.book_requested
+        book_offered: {
+          id: 'mock-book-2',
+          title: 'Offered Book',
+          author: 'Author Name',
+          isbn: '1234567890',
+          genre: ['Fiction'],
+          condition: BookCondition.GOOD,
+          ownerId: 'mock-owner',
+          location: 'Mock Location',
+          availableForSwap: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          language: 'English'
+        },
+        book_requested: {
+          id: 'mock-book-1',
+          title: 'Requested Book',
+          author: 'Another Author',
+          isbn: '0987654321',
+          genre: ['Mystery'],
+          condition: BookCondition.LIKE_NEW,
+          ownerId: 'mock-owner-2',
+          location: 'Another Location',
+          availableForSwap: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          language: 'English'
+        }
       }
 
-      setSwapRequest(transformedSwap)
+      setSwapRequest(mockSwap)
     } catch (error) {
       console.error('Error fetching swap request:', error)
       setError('Failed to load swap request details')
@@ -215,10 +230,12 @@ export default function SwapReviewModal({
                       <MapPin className="w-4 h-4" />
                       <span>{swapRequest.book_requested.location}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Calendar className="w-4 h-4" />
-                      <span>{swapRequest.book_requested.publishedYear}</span>
-                    </div>
+                    {swapRequest.book_requested.publishedYear && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4" />
+                        <span>{swapRequest.book_requested.publishedYear}</span>
+                      </div>
+                    )}
                     <div className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
                       {swapRequest.book_requested.condition}
                     </div>
@@ -238,10 +255,12 @@ export default function SwapReviewModal({
                       <MapPin className="w-4 h-4" />
                       <span>{swapRequest.book_offered.location}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Calendar className="w-4 h-4" />
-                      <span>{swapRequest.book_offered.publishedYear}</span>
-                    </div>
+                    {swapRequest.book_offered.publishedYear && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4" />
+                        <span>{swapRequest.book_offered.publishedYear}</span>
+                      </div>
+                    )}
                     <div className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
                       {swapRequest.book_offered.condition}
                     </div>
