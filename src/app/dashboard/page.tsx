@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect, Suspense, useMemo, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Book, BookReview } from '@/types/book'
 import BookCard from '@/components/BookCard'
 import ReviewModal from '@/components/ReviewModal'
 import { ChevronLeft, ChevronRight, SortAsc, SortDesc } from 'lucide-react'
-import { useAuth } from '@/lib/auth-context'
 
 interface Review {
   id: string
@@ -20,7 +19,15 @@ interface Review {
 }
 
 function DashboardContent() {
-  const { user, profile, loading: authLoading, updateUserActivity } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  
+  // Local auth state instead of useAuth hook
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  
   const [books, setBooks] = useState<Book[]>([])
   const [reviews, setReviews] = useState<BookReview[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,59 +52,108 @@ function DashboardContent() {
   // Pagination state
   const [booksPerPage] = useState(5)
   
-  // Debug counter to prevent infinite loops
-  const [renderCount, setRenderCount] = useState(0)
-  
   // Ref to prevent infinite loops when handling success parameter
   const hasHandledSuccess = useRef(false)
-  
-  const router = useRouter()
-  const searchParams = useSearchParams()
 
-  // Track user activity when they interact with the dashboard
+  // Check authentication status on component mount
   useEffect(() => {
-    if (user) {
-      updateUserActivity()
-    }
-  }, [user, updateUserActivity])
-
-  useEffect(() => {
-    // Prevent excessive re-renders
-    if (renderCount > 100) {
-      console.error('Dashboard render count exceeded 100 - possible infinite loop detected')
-      return
+    console.log('=== Dashboard useEffect triggered ===')
+    // Reset state when component mounts
+    setLoading(true)
+    setBooks([])
+    setReviews([])
+    
+    // Direct auth check with timeout
+    const checkAuth = async () => {
+      try {
+        console.log('Checking auth directly...')
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          console.error('Auth error:', error)
+          setUser(null)
+          router.push('/auth/login')
+        } else {
+          console.log('User found:', user?.email)
+          setUser(user)
+          
+          // Fetch user profile
+          if (user) {
+            const { data: profileData } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', user.id)
+              .single()
+            setProfile(profileData)
+          }
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        setUser(null)
+        router.push('/auth/login')
+      } finally {
+        setAuthLoading(false)
+      }
     }
     
-    setRenderCount(prev => prev + 1)
-    console.log('Dashboard useEffect triggered:', { authLoading, user: !!user, userId: user?.id, renderCount })
+    // Add timeout to prevent hanging
+    const authPromise = checkAuth()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+    )
     
-    if (authLoading) {
-      console.log('Still loading auth, skipping...')
-      return
-    }
-    
-    if (!user) {
-      console.log('No user, redirecting to login...')
+    Promise.race([authPromise, timeoutPromise]).catch(() => {
+      console.warn('Auth check timed out, redirecting to login')
+      setUser(null)
+      setAuthLoading(false)
       router.push('/auth/login')
-      return
+    })
+    
+    // Cleanup function
+    return () => {
+      console.log('Dashboard page unmounting - cleaning up state')
+      setLoading(false)
+      setAuthLoading(true)
+      setUser(null)
+      setProfile(null)
+      setBooks([])
+      setReviews([])
     }
-    
-    console.log('User available, fetching books for:', user.id)
-    
-    // Check if we're returning from adding a book
-    const success = searchParams.get('success')
-    if (success === 'book-added') {
-      console.log('Detected book added, refreshing books...')
-      // Clear the success parameter from URL
-      router.replace('/dashboard')
-    }
-    
-    // Fetch user's books when user is available
-    // Call fetchUserBooks without await since useEffect cannot be async
-    fetchUserBooks(user.id)
-  }, [user, authLoading, router]) // Removed searchParams from dependencies to prevent infinite loop
+  }, [router])
 
-  // Handle success parameter changes separately to prevent infinite loops
+  // Handle navigation changes
+  useEffect(() => {
+    console.log('Pathname changed to:', pathname)
+    // Reset loading state when navigating to this page
+    if (pathname === '/dashboard') {
+      console.log('Navigated to dashboard page - resetting state')
+      setLoading(true)
+      setBooks([])
+      setReviews([])
+    }
+  }, [pathname])
+
+  // Fetch books when auth is not loading
+  useEffect(() => {
+    console.log('=== fetchBooks useEffect triggered ===')
+    console.log('Auth loading:', authLoading)
+    console.log('User:', user)
+    
+    // Only fetch books when auth is not loading
+    if (!authLoading) {
+      if (user) {
+        console.log('Calling fetchUserBooks...')
+        fetchUserBooks(user.id)
+      } else {
+        console.log('No user, setting loading to false')
+        setLoading(false)
+      }
+    } else {
+      console.log('Auth still loading, skipping fetchUserBooks')
+    }
+  }, [authLoading, user?.id])
+
+  // Handle success parameter changes
   useEffect(() => {
     if (user && !authLoading && !hasHandledSuccess.current) {
       const success = searchParams.get('success')
@@ -117,19 +173,6 @@ function DashboardContent() {
     hasHandledSuccess.current = false
   }, [user?.id])
 
-  // Add a safety timeout to prevent infinite loading
-  useEffect(() => {
-    if (authLoading) {
-      const timeoutId = setTimeout(() => {
-        console.warn('Dashboard auth loading timeout - forcing refresh')
-        // Force a page refresh if auth loading takes too long
-        window.location.reload()
-      }, 15000) // 15 second timeout
-      
-      return () => clearTimeout(timeoutId)
-    }
-  }, [authLoading])
-
   // Add a safety timeout to prevent books loading from getting stuck
   useEffect(() => {
     if (booksLoading) {
@@ -147,33 +190,21 @@ function DashboardContent() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-    if (user) {
-      updateUserActivity()
-    }
-  }, [selectedGenre, sortOrder, user, updateUserActivity])
+  }, [selectedGenre, sortOrder])
 
   // Track activity when user changes page
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    if (user) {
-      updateUserActivity()
-    }
   }
 
   // Track activity when user changes genre filter
   const handleGenreFilter = (genre: string) => {
     setSelectedGenre(genre)
-    if (user) {
-      updateUserActivity()
-    }
   }
 
   // Track activity when user changes sort order
   const handleSortOrderChange = (order: 'asc' | 'desc') => {
     setSortOrder(order)
-    if (user) {
-      updateUserActivity()
-    }
   }
 
   const fetchUserBooks = async (userId: string) => {
@@ -208,13 +239,14 @@ function DashboardContent() {
         description: book.description,
         coverImage: book.cover_image || null,
         publishedYear: book.published_year,
-        language: book.language,
-        condition: book.condition,
-        ownerId: book.owner_id,
-        location: book.location,
-        availableForSwap: book.available_for_swap,
-        createdAt: new Date(book.created_at),
-        updatedAt: new Date(book.updated_at)
+                          language: book.language,
+                  condition: book.condition,
+                  ownerId: book.owner_id,
+                  location: book.location,
+                  availableForSwap: book.available_for_swap,
+                  swap_status: book.swap_status,
+                  created_at: book.created_at,
+                  updated_at: book.updated_at
       })) || []
 
       setBooks(transformedBooks)
@@ -338,14 +370,17 @@ function DashboardContent() {
     })
   }
 
+  const handleSwapCancelled = () => {
+    // Refresh the books list to show updated availability
+    if (user) {
+      fetchUserBooks(user.id)
+    }
+  }
 
-
-
-
-
-
-
-
+  const handleEditBook = (book: Book) => {
+    // Implementation for editing book
+    console.log('Edit book:', book)
+  }
 
   // Remove the useEffect for success=book-added since we don't need special handling anymore
   // const fetchMissingCovers = async (booksList: Book[]) => {
@@ -608,6 +643,7 @@ function DashboardContent() {
                       showReviewButton={true}
                       userRating={userReview?.rating || 0}
                       userReviewText={userReview?.review || ''}
+                      onSwapCancelled={handleSwapCancelled}
                     />
                   )
                 })}

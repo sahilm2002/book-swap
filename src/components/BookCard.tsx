@@ -1,22 +1,27 @@
 import { Book, BookCondition } from '@/types/book'
-import { MapPin, User, Calendar, Trash2, MessageSquare, Edit3, Check, X } from 'lucide-react'
+import { MapPin, User, Calendar, Trash2, MessageSquare, Edit3, Check, X, RefreshCw } from 'lucide-react'
 import Rating from './Rating'
 import { useState, useEffect } from 'react'
 import { searchGoogleBooks, getGoogleBooksUrl, getGoogleBooksSearchUrl } from '@/lib/googleBooks'
 import { supabase } from '@/lib/supabase'
+import { toggleBookAvailability } from '@/lib/swapUtils'
+import { useAuth } from '@/lib/auth-context'
 
 interface BookCardProps {
   book: Book
-  onSwapRequest?: (bookId: string) => void
+  onEdit?: (book: Book) => void
   onDelete?: (bookId: string) => void
+  onReviewClick?: (bookId: string) => void
   onGenreClick?: (genre: string) => void
-  onReviewClick?: (bookId: string, bookTitle?: string) => void
+  onSwapRequest?: (bookId: string) => void
+  onSwapCancelled?: (bookId: string) => void
+  showSwapToggle?: boolean
   showOwner?: boolean
   showReviewButton?: boolean
   averageRating?: number
-  reviewCount?: number
   userRating?: number
   userReviewText?: string
+  reviewCount?: number
 }
 
 const conditionLabels: Record<BookCondition, string> = {
@@ -45,10 +50,12 @@ export default function BookCard({
   onReviewClick,
   showOwner = true, 
   showReviewButton = false,
+  showSwapToggle = true,
   averageRating = 0,
   reviewCount = 0,
   userRating = 0,
-  userReviewText = ''
+  userReviewText = '',
+  onSwapCancelled
 }: BookCardProps) {
   const [googleBooksId, setGoogleBooksId] = useState<string | null>(null)
   const [isLoadingGoogleBooks, setIsLoadingGoogleBooks] = useState(false)
@@ -56,6 +63,22 @@ export default function BookCard({
   const [isEditingDescription, setIsEditingDescription] = useState(false)
   const [editedDescription, setEditedDescription] = useState(book.description || '')
   const [isSavingDescription, setIsSavingDescription] = useState(false)
+  const [isTogglingSwap, setIsTogglingSwap] = useState(false)
+  const [swapAvailable, setSwapAvailable] = useState(book.availableForSwap || false)
+  
+  // Confirmation modal state
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [bookToCancel, setBookToCancel] = useState<string | null>(null)
+  
+  // Force re-render state
+  const [forceUpdate, setForceUpdate] = useState(0)
+  
+  // Local state to track cancelled swaps
+  const [cancelledSwapIds, setCancelledSwapIds] = useState<Set<string>>(new Set())
+  
+  // Simple state to track if current user's swap was cancelled
+  const [isCurrentSwapCancelled, setIsCurrentSwapCancelled] = useState(false)
+  const { user } = useAuth()
 
   // Fetch Google Books ID when component mounts
   useEffect(() => {
@@ -93,10 +116,136 @@ export default function BookCard({
   // Get the appropriate Google Books URL
   const getGoogleBooksLink = () => {
     if (googleBooksId) {
-      return getGoogleBooksUrl(googleBooksId)
+      return `https://books.google.com/books?id=${googleBooksId}`
     }
     return getGoogleBooksSearchUrl(book.title, book.author)
   }
+
+  // Determine swap button state
+  const getSwapButtonState = () => {
+    console.log('=== getSwapButtonState called ===')
+    console.log('Book:', book.title)
+    console.log('Available for swap:', book.availableForSwap)
+    console.log('Is current swap cancelled:', isCurrentSwapCancelled)
+    console.log('Book swap requests:', book.swapRequests)
+    console.log('Current user:', user?.id)
+    console.log('Current user type:', typeof user?.id)
+    
+    if (!book.availableForSwap) {
+      console.log('Returning: not-available')
+      return 'not-available'
+    }
+    
+    // If current user's swap was cancelled locally, allow requesting again
+    if (isCurrentSwapCancelled) {
+      console.log('Returning: can-request (local cancelled state)')
+      return 'can-request'
+    }
+    
+    // Check if current user has already requested a swap for this book
+    if (book.swapRequests && book.swapRequests.length > 0) {
+      console.log('Found swap requests:', book.swapRequests)
+      console.log('Looking for requester_id matching:', user?.id)
+      
+      const currentUserSwapRequest = book.swapRequests.find(swap => {
+        console.log('Checking swap:', swap)
+        console.log('Swap requester_id:', swap.requester_id)
+        console.log('Swap requester_id type:', typeof swap.requester_id)
+        console.log('User ID:', user?.id)
+        console.log('User ID type:', typeof user?.id)
+        console.log('Match?', swap.requester_id === user?.id)
+        return swap.requester_id === user?.id
+      })
+      
+      console.log('Current user swap request found:', currentUserSwapRequest)
+      
+      if (currentUserSwapRequest) {
+        switch (currentUserSwapRequest.status) {
+          case 'pending':
+            console.log('Returning: swap-requested (pending)')
+            return 'swap-requested'
+          case 'approved':
+            console.log('Returning: swap-approved')
+            return 'swap-approved'
+          case 'denied':
+            console.log('Returning: swap-denied')
+            return 'swap-denied'
+          case 'completed':
+            console.log('Returning: swap-completed')
+            return 'swap-completed'
+          case 'cancelled':
+            console.log('Returning: can-request (cancelled)')
+            return 'can-request' // Allow requesting again after cancellation
+          default:
+            console.log('Returning: swap-requested (default)')
+            return 'swap-requested'
+        }
+      }
+    } else {
+      console.log('No swap requests found for this book')
+    }
+    
+    console.log('Returning: can-request (no swap request)')
+    return 'can-request'
+  }
+
+  const swapButtonState = getSwapButtonState()
+
+  // Recalculate swap button state when relevant state changes
+  useEffect(() => {
+    // This will trigger a re-render when cancelledSwapIds changes
+  }, [cancelledSwapIds, forceUpdate])
+
+  // Initialize the cancelled state based on book data
+  useEffect(() => {
+    console.log('=== Initializing cancelled state ===')
+    console.log('Book swap requests:', book.swapRequests)
+    console.log('Current user:', user?.id)
+    
+    if (book.swapRequests && user) {
+      const currentUserSwap = book.swapRequests.find(swap => 
+        swap.requester_id === user.id
+      )
+      console.log('Found current user swap:', currentUserSwap)
+      
+      if (currentUserSwap) {
+        const isCancelled = currentUserSwap.status === 'cancelled'
+        console.log('Setting isCurrentSwapCancelled to:', isCancelled)
+        console.log('Based on swap status:', currentUserSwap.status)
+        setIsCurrentSwapCancelled(isCancelled)
+      } else {
+        console.log('No current user swap found, setting isCurrentSwapCancelled to false')
+        setIsCurrentSwapCancelled(false)
+      }
+    } else {
+      console.log('No swap requests or user, setting isCurrentSwapCancelled to false')
+      setIsCurrentSwapCancelled(false)
+    }
+  }, [book.swapRequests, user])
+
+  // Watch for changes in book.swapRequests and update local state accordingly
+  useEffect(() => {
+    console.log('=== Book swap requests changed ===')
+    console.log('New swap requests:', book.swapRequests)
+    console.log('Current user:', user?.id)
+    
+    if (book.swapRequests && user) {
+      const currentUserSwap = book.swapRequests.find(swap => 
+        swap.requester_id === user.id
+      )
+      console.log('Current user swap in updated data:', currentUserSwap)
+      
+      if (currentUserSwap) {
+        const isCancelled = currentUserSwap.status === 'cancelled'
+        console.log('Updating isCurrentSwapCancelled to:', isCancelled)
+        console.log('Based on swap status:', currentUserSwap.status)
+        setIsCurrentSwapCancelled(isCancelled)
+      } else {
+        console.log('No current user swap in updated data, setting isCurrentSwapCancelled to false')
+        setIsCurrentSwapCancelled(false)
+      }
+    }
+  }, [book.swapRequests, user])
 
   // Handle description editing
   const handleEditDescription = () => {
@@ -133,6 +282,138 @@ export default function BookCard({
       setEditedDescription(book.description || '')
     } finally {
       setIsSavingDescription(false)
+    }
+  }
+
+  // Handle swap availability toggle
+  const handleSwapToggle = async () => {
+    if (isTogglingSwap) return
+    
+    setIsTogglingSwap(true)
+    try {
+      const newStatus = !swapAvailable
+      const { success, error } = await toggleBookAvailability(book.id, newStatus)
+      
+      if (success) {
+        setSwapAvailable(newStatus)
+        // Update the local book object
+        book.availableForSwap = newStatus
+      } else {
+        console.error('Error toggling swap availability:', error)
+      }
+    } catch (error) {
+      console.error('Error toggling swap availability:', error)
+    } finally {
+      setIsTogglingSwap(false)
+    }
+  }
+
+  // Handle cancel swap request
+  const handleCancelSwap = async (bookId: string) => {
+    // Show confirmation modal instead of immediate cancellation
+    setBookToCancel(bookId)
+    setShowCancelModal(true)
+  }
+
+  // Actually cancel the swap after confirmation
+  const confirmCancelSwap = async () => {
+    if (!bookToCancel || isTogglingSwap) return
+
+    console.log('Starting swap cancellation for book:', book.id)
+    console.log('Current user:', user?.id)
+    console.log('Book swap requests:', book.swapRequests)
+    
+    setIsTogglingSwap(true)
+    try {
+      // Find the swap request for this book by the current user
+      const currentUserSwapRequest = book.swapRequests?.find(swap => 
+        swap.requester_id === user?.id
+      )
+      
+      console.log('Found swap request to cancel:', currentUserSwapRequest)
+      
+      if (!currentUserSwapRequest) {
+        console.error('No swap request found to cancel')
+        return
+      }
+
+      console.log('Updating swap status to cancelled in database...')
+      
+      // Update the swap status to cancelled
+      const { error } = await supabase
+        .from('book_swaps')
+        .update({ 
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', currentUserSwapRequest.id)
+
+      if (error) {
+        console.error('Database error cancelling swap:', error)
+        throw error
+      }
+
+      console.log('Successfully updated swap status to cancelled')
+
+      // Create notification for the book owner about cancellation
+      console.log('Creating cancellation notification for owner:', book.ownerId)
+      
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: book.ownerId,
+          type: 'swap_cancelled',
+          title: 'Swap Request Cancelled',
+          message: `A swap request for "${book.title}" has been cancelled.`,
+          related_swap_id: currentUserSwapRequest.id
+        })
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError)
+      } else {
+        console.log('Successfully created cancellation notification')
+      }
+
+      // Update the local book object
+      if (book.swapRequests) {
+        book.swapRequests = book.swapRequests.map(swap => 
+          swap.requester_id === user?.id ? { ...swap, status: 'cancelled' } : swap
+        )
+        console.log('Updated local book swap requests:', book.swapRequests)
+      }
+
+      // Add to local cancelled swaps set
+      setCancelledSwapIds(prev => new Set([...prev, currentUserSwapRequest.id]))
+
+      // Set the current swap as cancelled
+      setIsCurrentSwapCancelled(true)
+      console.log('Set isCurrentSwapCancelled to true')
+
+      // Force a re-render by updating local state
+      setSwapAvailable(book.availableForSwap || false)
+      
+      // Call the callback to refresh parent component
+      onSwapCancelled?.(book.id)
+      
+      // Close the modal
+      setShowCancelModal(false)
+      setBookToCancel(null)
+      
+      // Force component re-render
+      setForceUpdate(prev => prev + 1)
+      
+      console.log('Swap cancellation completed successfully')
+      
+      // Reset the local cancelled state after a short delay to allow parent refresh
+      setTimeout(() => {
+        console.log('Resetting local cancelled state to sync with database')
+        setIsCurrentSwapCancelled(false)
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Error cancelling swap request:', error)
+    } finally {
+      setIsTogglingSwap(false)
     }
   }
 
@@ -346,13 +627,121 @@ export default function BookCard({
             </div>
 
             <div className="flex gap-2">
-              {onSwapRequest && book.availableForSwap && (
+              {/* Swap Availability Toggle */}
+              {showSwapToggle && (
                 <button
-                  onClick={() => onSwapRequest(book.id)}
-                  className="btn-primary text-sm px-3 py-1"
+                  onClick={handleSwapToggle}
+                  disabled={isTogglingSwap}
+                  className={`flex items-center gap-1 px-3 py-1 text-sm rounded-md transition-all duration-200 ${
+                    swapAvailable
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300'
+                  } ${isTogglingSwap ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  title={swapAvailable ? 'Available for swap - Click to make unavailable' : 'Not available for swap - Click to make available'}
                 >
-                  Request Swap
+                  <RefreshCw className={`w-4 h-4 ${isTogglingSwap ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">
+                    {swapAvailable ? 'Available' : 'Unavailable'}
+                  </span>
                 </button>
+              )}
+
+              {/* Test button for debugging */}
+              {process.env.NODE_ENV === 'development' && (
+                <button
+                  onClick={async () => {
+                    console.log('=== TESTING DATABASE UPDATE ===')
+                    const currentUserSwapRequest = book.swapRequests?.find(swap => 
+                      swap.requester_id === user?.id
+                    )
+                    console.log('Current swap request:', currentUserSwapRequest)
+                    
+                    if (currentUserSwapRequest) {
+                      console.log('Testing database update...')
+                      const { error } = await supabase
+                        .from('book_swaps')
+                        .update({ 
+                          status: 'cancelled',
+                          cancelled_at: new Date().toISOString()
+                        })
+                        .eq('id', currentUserSwapRequest.id)
+                      
+                      if (error) {
+                        console.error('Test update failed:', error)
+                      } else {
+                        console.log('Test update succeeded!')
+                        // Force refresh
+                        window.location.reload()
+                      }
+                    }
+                  }}
+                  className="btn-secondary text-xs px-2 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300"
+                  title="Test database update (dev only)"
+                >
+                  Test DB
+                </button>
+              )}
+
+              {onSwapRequest && book.availableForSwap && (
+                (() => {
+                  // Use the getSwapButtonState function to determine button state
+                  const buttonState = getSwapButtonState()
+                  
+                  switch (buttonState) {
+                    case 'swap-requested':
+                      return (
+                        <button
+                          onClick={() => handleCancelSwap(book.id)}
+                          className="btn-secondary text-sm px-3 py-1 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-300 cursor-pointer"
+                          title="Click to cancel swap request"
+                        >
+                          Swap Requested
+                        </button>
+                      )
+                    case 'swap-approved':
+                      return (
+                        <button
+                          disabled
+                          className="btn-secondary text-sm px-3 py-1 bg-green-100 text-green-700 cursor-not-allowed"
+                          title="Swap approved - waiting for completion"
+                        >
+                          Swap Approved
+                        </button>
+                      )
+                    case 'swap-denied':
+                      return (
+                        <button
+                          disabled
+                          className="btn-secondary text-sm px-3 py-1 bg-red-100 text-red-700 cursor-not-allowed"
+                          title="Swap request denied"
+                        >
+                          Swap Denied
+                        </button>
+                      )
+                    case 'swap-completed':
+                      return (
+                        <button
+                          disabled
+                          className="btn-secondary text-sm px-3 py-1 bg-gray-100 text-gray-700 cursor-not-allowed"
+                          title="Swap completed"
+                        >
+                          Swap Completed
+                        </button>
+                      )
+                    case 'can-request':
+                      return (
+                        <button
+                          onClick={() => onSwapRequest(book.id)}
+                          className="btn-primary text-sm px-3 py-1"
+                        >
+                          Request Swap
+                        </button>
+                      )
+                    case 'not-available':
+                    default:
+                      return null
+                  }
+                })()
               )}
               
               {showReviewButton && onReviewClick && (
@@ -380,12 +769,40 @@ export default function BookCard({
           {showOwner && (
             <div className="mt-3 pt-3 border-t border-gray-200">
               <p className="text-sm text-gray-500">
-                Shared by <span className="font-medium text-gray-700">@{book.ownerId}</span>
+                Shared by <span className="font-medium text-gray-700">
+                  @{book.ownerUsername || book.ownerEmail?.split('@')[0] || 'Unknown User'}
+                </span>
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showCancelModal && bookToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Cancellation</h3>
+            <p className="text-sm text-gray-700 mb-4">
+              Are you sure you want to cancel the swap request for "{book.title}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="btn-secondary text-sm px-4 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCancelSwap}
+                className="btn-primary text-sm px-4 py-2"
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
