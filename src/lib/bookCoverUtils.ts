@@ -20,7 +20,7 @@ export interface BookCoverUtilsCallbacks {
 export const fetchMissingCovers = async <T extends { id: string; title: string; author: string; coverImage?: string }>(
   books: T[],
   callbacks: BookCoverUtilsCallbacks,
-  concurrencyLimit: number = 5
+  concurrencyLimit: number = 3
 ): Promise<void> => {
   const booksWithoutCovers = books.filter(book => !book.coverImage)
   
@@ -31,69 +31,46 @@ export const fetchMissingCovers = async <T extends { id: string; title: string; 
   
   console.log(`Fetching missing covers for ${booksWithoutCovers.length} books`)
   
-  // Process books in batches to control concurrency
-  for (let i = 0; i < booksWithoutCovers.length; i += concurrencyLimit) {
-    const batch = booksWithoutCovers.slice(i, i + concurrencyLimit)
-    const batchIds = batch.map(book => book.id)
-    
-    // Mark all batch IDs as loading in a single state update
-    batchIds.forEach(id => callbacks.onLoadingChange(id, true))
-    
-    // Process batch concurrently
-    const batchPromises = batch.map(async (book) => {
-      try {
-        console.log(`Fetching cover for: ${book.title} by ${book.author}`)
-        const coverUrl = await fetchBookCover(book.title, book.author)
+  // Process books sequentially for more reliable results
+  for (const book of booksWithoutCovers) {
+    try {
+      // Mark as loading
+      callbacks.onLoadingChange(book.id, true)
+      
+      console.log(`Fetching cover for: ${book.title} by ${book.author}`)
+      const coverUrl = await fetchBookCover(book.title, book.author)
+      
+      if (coverUrl) {
+        console.log(`Found cover for ${book.title}:`, coverUrl)
         
-        if (coverUrl) {
-          console.log(`Found cover for ${book.title}:`, coverUrl)
-          
-          // Update the book in the database
-          const { error } = await supabase
-            .from('books')
-            .update({ cover_image: coverUrl })
-            .eq('id', book.id)
-          
-          if (error) {
-            console.error(`Error updating cover in database for ${book.title}:`, error)
-            return { success: false, bookId: book.id, error: error.message }
-          } else {
-            console.log(`Successfully updated cover in database for ${book.title}`)
-            
-            // Call the update callback to update local state
-            callbacks.onUpdate(book.id, coverUrl)
-            
-            return { success: true, bookId: book.id, coverUrl }
-          }
+        // Update the book in the database
+        const { error } = await supabase
+          .from('books')
+          .update({ cover_image: coverUrl })
+          .eq('id', book.id)
+        
+        if (error) {
+          console.error(`Error updating cover in database for ${book.title}:`, error)
         } else {
-          console.log(`No cover found for ${book.title}`)
-          return { success: false, bookId: book.id, error: 'No cover found' }
-        }
-      } catch (error) {
-        console.error(`Failed to fetch cover for ${book.title}:`, error)
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        return { success: false, bookId: book.id, error: errorMessage }
-      }
-    })
-    
-    // Wait for all promises in the batch to settle
-    const results = await Promise.allSettled(batchPromises)
-    
-    // Log results for debugging
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        const { success, bookId, coverUrl, error } = result.value
-        if (success) {
-          console.log(`Successfully fetched cover for book ${bookId}`)
-        } else {
-          console.warn(`No cover found for book ${bookId}: ${error}`)
+          console.log(`Successfully updated cover in database for ${book.title}`)
+          
+          // Call the update callback to update local state
+          callbacks.onUpdate(book.id, coverUrl)
         }
       } else {
-        console.error(`Promise rejected for book in batch:`, result.reason)
+        console.log(`No cover found for ${book.title}`)
       }
-    })
-    
-    // Remove all batch IDs from loading state in a single update
-    batchIds.forEach(id => callbacks.onLoadingChange(id, false))
+      
+      // Reduced delay for faster response while still being respectful to the API
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+    } catch (error) {
+      console.error(`Failed to fetch cover for ${book.title}:`, error)
+    } finally {
+      // Mark as not loading
+      callbacks.onLoadingChange(book.id, false)
+    }
   }
+  
+  console.log('Finished fetching all missing covers')
 }
