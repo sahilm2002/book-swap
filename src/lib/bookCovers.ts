@@ -72,6 +72,11 @@ async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<R
 
 // Helper function to enhance Google Books image URL quality
 function enhanceGoogleBooksImageUrl(url: string): string {
+  // Temporarily disable URL enhancement to fix image loading issues
+  return url
+  
+  // Original enhancement logic commented out:
+  /*
   try {
     const urlObj = new URL(url)
     
@@ -100,6 +105,7 @@ function enhanceGoogleBooksImageUrl(url: string): string {
     console.warn('Failed to enhance Google Books image URL:', error)
     return url
   }
+  */
 }
 
 // Cache management
@@ -107,6 +113,11 @@ function getCacheKey(title: string, author?: string): string {
   const normalizedTitle = title.toLowerCase().trim()
   const normalizedAuthor = author ? author.toLowerCase().trim() : ''
   return `${normalizedTitle}|${normalizedAuthor}`
+}
+
+// Clear cache on startup to avoid old enhanced URLs
+if (typeof window !== 'undefined') {
+  clearCoverCache()
 }
 
 function getFromCache(title: string, author?: string): string | null {

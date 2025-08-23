@@ -110,7 +110,7 @@ export default function ReviewModal({
           {/* Rating */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Your Rating *
+              Your Rating * {rating === 0 && <span className="text-red-500">(Required)</span>}
             </label>
             <Rating
               rating={rating}
@@ -120,6 +120,9 @@ export default function ReviewModal({
             />
             {errors.rating && (
               <p className="mt-2 text-sm text-red-600">{errors.rating}</p>
+            )}
+            {rating === 0 && (
+              <p className="mt-2 text-sm text-amber-600">⚠️ Please select a rating to submit your review</p>
             )}
           </div>
 
@@ -133,9 +136,10 @@ export default function ReviewModal({
               value={review}
               onChange={(e) => setReview(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-500 resize-none"
               placeholder="Share your thoughts about this book..."
               disabled={isLoading}
+              style={{ color: '#111827' }}
             />
             {errors.review && (
               <p className="mt-2 text-sm text-red-600">{errors.review}</p>
@@ -178,6 +182,8 @@ export default function ReviewModal({
                 existingReview ? 'Update Review' : 'Submit Review'
               )}
             </button>
+            
+
           </div>
         </form>
       </div>

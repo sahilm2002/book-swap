@@ -3,19 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 15, 23, 42;
-  --background-end-rgb: 30, 41, 59;
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 249, 250, 251;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: rgb(var(--background-rgb));
 }
 
 @layer components {
@@ -32,35 +26,35 @@ body {
   }
 
   .input-field {
-    @apply w-full px-3 py-2 border border-amber-500/30 rounded-lg bg-slate-800/50 text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all duration-300;
+    @apply w-full px-3 py-2 border border-amber-500/30 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all duration-300;
   }
 
   .card {
-    @apply bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-6 border border-amber-500/20 shadow-xl;
+    @apply bg-white rounded-xl p-6 border border-gray-200 shadow-lg;
   }
 
   .nav-link {
-    @apply text-slate-300 hover:text-amber-400 transition-colors duration-200 font-medium;
+    @apply text-slate-200 hover:text-amber-300 transition-colors duration-200 font-medium;
   }
 
   .nav-link-active {
-    @apply text-amber-400 border-b-2 border-amber-400;
+    @apply text-amber-300 border-b-2 border-amber-300;
   }
 
   .section-title {
-    @apply text-3xl font-bold text-amber-200 mb-6;
+    @apply text-3xl font-bold text-gray-900 mb-6;
   }
 
   .section-subtitle {
-    @apply text-xl text-slate-400 mb-8 max-w-2xl;
+    @apply text-xl text-gray-600 mb-8 max-w-2xl;
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-amber-200 via-orange-200 to-amber-200 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 bg-clip-text text-transparent;
   }
 
   .glass-effect {
-    @apply bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-sm border border-amber-500/20;
+    @apply bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200;
   }
 
   .hover-glow {
@@ -74,7 +68,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgb(15, 23, 42);
+  background: rgb(249, 250, 251);
 }
 
 ::-webkit-scrollbar-thumb {

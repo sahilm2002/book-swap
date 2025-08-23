@@ -10,11 +10,20 @@ export interface Book {
   pageCount?: number
   language: string
   condition: BookCondition
-  ownerId: string
+  ownerId: string // Database field name
   location: string
   availableForSwap: boolean
-  createdAt: Date
-  updatedAt: Date
+  swap_status?: string // New field for swap status
+  created_at: string // Database field name
+  updated_at: string // Database field name
+  swapRequests?: Array<{
+    id: string
+    requester_id: string
+    status: string
+  }>
+  // Owner information
+  ownerUsername?: string
+  ownerEmail?: string
 }
 
 export interface User {
