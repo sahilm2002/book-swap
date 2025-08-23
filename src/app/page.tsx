@@ -178,7 +178,7 @@ export default function HomePage() {
               <h4 className="font-semibold mb-4 text-amber-200">Platform</h4>
               <ul className="space-y-2 text-slate-400">
                 <li><Link href="/browse" className="hover:text-amber-400 transition-colors">Browse Books</Link></li>
-                <li><Link href="/community" className="hover:text-amber-400 transition-colors">Literary Society</Link></li>
+                <li><Link href="/literary-society" className="hover:text-amber-400 transition-colors">Literary Society</Link></li>
                 <li><Link href="/about" className="hover:text-amber-400 transition-colors">About Us</Link></li>
               </ul>
             </div>
