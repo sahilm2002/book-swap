@@ -146,14 +146,14 @@ export async function createSwapRequest(request: SwapRequest, userId: string): P
         {
           swap_id: swap.id,
           user_id: swap.requester_id,
-          partner_id: swap.book_owner_id, // changed from swap.book_requested_id to swap.book_owner_id
+          partner_id: swap.book_owner_id, // changed from book_requested_id to book_owner_id (user ID)
           action: 'requested',
           timestamp: swap.created_at,
         },
         {
           swap_id: swap.id,
           user_id: swap.book_owner_id,
-          partner_id: swap.requester_id, // changed from swap.book_requested_id to swap.requester_id
+          partner_id: swap.requester_id, // changed from book_requested_id to requester_id (user ID)
           action: 'received_request',
           timestamp: swap.created_at,
         }
