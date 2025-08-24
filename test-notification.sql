@@ -29,20 +29,25 @@ FROM books b
 LEFT JOIN users u ON b.owner_id = u.id
 LIMIT 5;
 
--- Now let's try to create a test notification
--- Replace the user_id with an actual user ID from the users table
-INSERT INTO notifications (
+-- Create a test notification for the most recently created user
+WITH picked_user AS (
+  SELECT id
+    FROM public.users
+   ORDER BY created_at DESC NULLS LAST
+   LIMIT 1
+)
+INSERT INTO public.notifications (
   user_id,
   type,
   title,
   message,
-  related_swap_id,
-  created_at
-) VALUES (
-  'REPLACE_WITH_ACTUAL_USER_ID',  -- Replace this with a real user ID
+  related_swap_id
+)
+SELECT
+  id,
   'test',
   'Test Notification',
   'This is a test notification',
-  'test-swap-id',
-  NOW()
-) RETURNING *;
+  NULL
+  FROM picked_user
+RETURNING *;
