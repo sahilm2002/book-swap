@@ -455,32 +455,47 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
   }
 }
 
-// 12. Transfer book ownership (atomic)
+// 12. Transfer book ownership (deterministic two-sided swap)
 export async function transferBookOwnership(swap: { book_requested_id: string; book_offered_id: string }) {
-  // Note: Supabase JS does not support multi-statement transactions directly.
-  // For true atomicity, use a PostgreSQL function or transaction via PostgREST.
   try {
-    // 1. Get previous owner of requested book
-    const { data: requestedBook, error: selectError } = await supabase
+    // Fetch both books and their owners
+    const { data: requestedBook, error: requestedBookError } = await supabase
       .from('books')
-      .select('owner_id')
+      .select('owner_id, user_id')
       .eq('id', swap.book_requested_id)
-      .single()
+      .single();
 
-    if (selectError) throw selectError
-    const previousOwnerId = requestedBook.owner_id
-
-    // 2. Update offered book's owner_id to previous owner of requested book
-    const { error: updateError } = await supabase
+    const { data: offeredBook, error: offeredBookError } = await supabase
       .from('books')
-      .update({ owner_id: previousOwnerId })
+      .select('owner_id, user_id')
       .eq('id', swap.book_offered_id)
+      .single();
 
-    if (updateError) throw updateError
+    if (requestedBookError || !requestedBook) throw requestedBookError || new Error('Requested book not found');
+    if (offeredBookError || !offeredBook) throw offeredBookError || new Error('Offered book not found');
 
-    return { success: true }
+    // Normalize owner IDs
+    const requestedOwnerId = requestedBook.owner_id ?? requestedBook.user_id;
+    const offeredOwnerId = offeredBook.owner_id ?? offeredBook.user_id;
+
+    // Swap the owners
+    const { error: updateRequestedError } = await supabase
+      .from('books')
+      .update({ owner_id: offeredOwnerId })
+      .eq('id', swap.book_requested_id);
+
+    if (updateRequestedError) throw updateRequestedError;
+
+    const { error: updateOfferedError } = await supabase
+      .from('books')
+      .update({ owner_id: requestedOwnerId })
+      .eq('id', swap.book_offered_id);
+
+    if (updateOfferedError) throw updateOfferedError;
+
+    return { success: true };
   } catch (error) {
-    console.error('Error transferring book ownership:', error)
-    throw error
+    console.error('Error transferring book ownership:', error);
+    throw error;
   }
 }
