@@ -239,6 +239,7 @@ BEGIN
 
   -- Example notification insert (fix user_id reference)
   IF NEW.status = 'cancelled' AND OLD.status <> 'cancelled' THEN
+    -- Prevent duplicate notification for this swap
     IF NOT EXISTS (
       SELECT 1 FROM notifications
       WHERE related_swap_id = NEW.id AND type = 'swap_cancelled'
