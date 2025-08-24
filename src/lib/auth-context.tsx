@@ -24,7 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Only check auth once on mount
   useEffect(() => {
     let mounted = true
-    let subscription: any
+    // Type the subscription returned by onAuthStateChange
+    type AuthSubscription = ReturnType<typeof supabase.auth.onAuthStateChange>['data']['subscription']
+    let subscription: AuthSubscription | null = null
 
     const checkAuth = async () => {
       try {
@@ -60,9 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false
-      if (subscription) {
-        subscription.unsubscribe()
-      }
+      subscription?.unsubscribe()
     }
   }, [])
 
@@ -93,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       const { error } = await supabase.auth.signOut()
       if (error) throw error
+      // Optimistically clear user; auth listener will confirm
+      setUser(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign out failed')
       throw err
