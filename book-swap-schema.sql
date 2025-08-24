@@ -135,7 +135,11 @@ CREATE OR REPLACE FUNCTION cancel_pending_offers_for_book()
 RETURNS TRIGGER AS $$
 BEGIN
   -- If a book's ownership changes (swap completed), cancel all pending offers for that book
-  IF NEW.user_id != OLD.user_id THEN
+CREATE OR REPLACE FUNCTION cancel_pending_offers_for_book()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- If a book's ownership changes (swap completed), cancel all pending offers for that book
+  IF NEW.owner_id != OLD.owner_id THEN
     UPDATE book_swaps 
     SET status = 'cancelled', 
         cancelled_at = NOW(), 
