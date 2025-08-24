@@ -45,3 +45,16 @@ WHERE
     AND recipient_email = :user_email -- use a parameter or placeholder here
     AND sent_at >= CURRENT_DATE - INTERVAL '7 days'
 ORDER BY n.created_at DESC;
+
+-- Check if there are any notifications for a specific user
+-- Use :user_id as a placeholder for the user's ID; do not hardcode real email addresses or PII
+SELECT 
+  n.*,
+  u.email as user_email
+FROM notifications n
+JOIN auth.users u ON n.user_id = u.id
+WHERE
+    notification_type = 'email'
+    AND u.id = :user_id -- use a parameter or placeholder here
+    AND sent_at >= CURRENT_DATE - INTERVAL '7 days'
+ORDER BY n.created_at DESC;
