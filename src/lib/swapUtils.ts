@@ -215,13 +215,13 @@ export async function getUserSwapRequests(): Promise<{ swaps: SwapWithBooks[]; e
       ...swap,
       book_requested: {
         ...swap.book_requested,
-        owner_name: swap.book_requested.owner?.full_name,
-        owner_email: swap.book_requested.owner?.email
+        owner_name: swap.book_requested?.owner?.full_name,
+        owner_email: swap.book_requested?.owner?.email
       },
       book_offered: {
         ...swap.book_offered,
-        owner_name: swap.book_offered.owner?.full_name,
-        owner_email: swap.book_offered.owner?.email
+        owner_name: swap.book_offered?.owner?.full_name,
+        owner_email: swap.book_offered?.owner?.email
       },
       requester_name: swap.requester?.full_name,
       requester_email: swap.requester?.email
