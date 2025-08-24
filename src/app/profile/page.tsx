@@ -4,17 +4,16 @@ import { useAuth } from '@/lib/auth-context'
 import AuthGuard from '@/components/AuthGuard'
 import Navigation from '@/components/Navigation'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const handleSignOut = async () => {
     try {
       setLoading(true)
-      await supabase.auth.signOut()
+      await signOut()
       // The auth context will handle the state update
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to sign out' })
