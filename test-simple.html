@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test - Books & Booze</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #1e293b, #7c3aed, #1e293b);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        h1 { 
+            color: #fbbf24; 
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .success {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        .info {
+            background: rgba(59, 130, 246, 0.3);
+            border: 2px solid #3b82f6;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        p { 
+            font-size: 1.2rem; 
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        .time {
+            font-weight: bold;
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍸 Books & Booze 📚</h1>
+        <div class="success">
+            <h2 style="margin-top: 0; color: #22c55e;">✅ SUCCESS!</h2>
+            <p><strong>If you can see this page, your browser is working correctly!</strong></p>
+            <p class="time">Current time: <span id="time"></span></p>
+        </div>
+        
+        <div class="info">
+            <h3 style="margin-top: 0; color: #3b82f6;">📋 Next Steps:</h3>
+            <ol style="text-align: left; padding-left: 20px;">
+                <li>Confirm you can see this styled page clearly</li>
+                <li>Note the current time above (it should be accurate)</li>
+                <li>Report back which elements you can see</li>
+                <li>We'll then proceed to fix the Next.js application</li>
+            </ol>
+        </div>
+
+        <div style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <p><strong>This is a simple HTML file to verify basic functionality.</strong></p>
+            <p>No React, No Next.js, No complex JavaScript - just basic HTML, CSS, and a timestamp.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Update time every second
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        console.log('Simple test page loaded successfully at:', new Date().toISOString());
+    </script>
+</body>
+</html>

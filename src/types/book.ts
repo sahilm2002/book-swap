@@ -10,11 +10,29 @@ export interface Book {
   pageCount?: number
   language: string
   condition: BookCondition
-  ownerId: string
+  ownerId: string // Database field name
   location: string
   availableForSwap: boolean
-  createdAt: Date
-  updatedAt: Date
+  swapStatus: SwapStatus // use camelCase and enum
+  swap_status?: SwapStatus // optional snake_case for DB compatibility
+  createdAt?: string // camelCase alias
+  updatedAt?: string // camelCase alias
+  created_at?: string // optional snake_case for DB compatibility
+  updated_at?: string // optional snake_case for DB compatibility
+  swapRequests?: Array<{
+    id: string
+    // Accept both DB and domain shapes; normalize at boundaries.
+    requester_id?: string
+    requesterId?: string
+    status: SwapStatus // narrow to enum
+    createdAt?: string
+    updatedAt?: string
+    created_at?: string
+    updated_at?: string
+  }>
+  // Owner information
+  ownerUsername?: string
+  ownerEmail?: string
 }
 
 export interface User {
@@ -97,11 +115,14 @@ export enum BookCondition {
 }
 
 export enum SwapStatus {
-  PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  REJECTED = 'rejected',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+  Available = 'available',
+  Pending = 'pending',
+  Swapped = 'swapped',
+  Unavailable = 'unavailable',
+  Approved = 'approved',
+  Denied = 'denied',
+  Cancelled = 'cancelled',
+  Completed = 'completed'
 }
 
 export interface SearchFilters {

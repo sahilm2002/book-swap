@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #1e293b, #7c3aed, #1e293b);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        h1 { 
+            color: #fbbf24; 
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        p { 
+            font-size: 1.2rem; 
+            margin-bottom: 1rem;
+        }
+        .success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 2px solid #22c55e;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍸 Books & Booze Test Page 📚</h1>
+        <div class="success">
+            <p><strong>SUCCESS!</strong> If you can see this page, your browser and server are working correctly.</p>
+        </div>
+        <p>Time: <span id="time"></span></p>
+        <p>This is a static HTML file served by the Next.js server.</p>
+        <p>Next.js app should be available at: <a href="/" style="color: #fbbf24;">http://localhost:3000</a></p>
+    </div>
+    <script>
+        document.getElementById('time').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>
