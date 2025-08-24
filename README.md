@@ -90,10 +90,12 @@ The platform automatically fetches book covers from Google Books API when users 
 
 ## Database Setup
 
-1. Run the SQL scripts in the correct order:
-   - `common-triggers.sql` (shared functions)
-   - `database-schema.sql` (core tables)
-   - `book-reviews-schema.sql` (review system)
+To set up the database, run the following SQL scripts in order:
+
+- `common-triggers.sql` (shared functions)
+- `database-schema.sql` (core tables)
+- `users-schema.sql` (users schema)
+- `book-reviews-schema.sql` (review system)
 
 ## Contributing
 
