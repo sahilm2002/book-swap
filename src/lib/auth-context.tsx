@@ -68,10 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true)
       setError(null)
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
+      // Don't set loading to false here - let the auth listener handle it
+      // when the session is established
     } catch (err) {
+      setLoading(false)
       setError(err instanceof Error ? err.message : 'Sign in failed')
       throw err
     }
@@ -79,12 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
+      setLoading(true)
       setError(null)
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign up failed')
       throw err
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -10,6 +10,7 @@ export default function SignupForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [signedUp, setSignedUp] = useState(false)
   const [validationError, setValidationError] = useState('')
   const { signUp, error, clearError } = useAuth()
   const router = useRouter()
@@ -32,7 +33,9 @@ export default function SignupForm() {
       clearError()
       clearValidationError()
       await signUp(email, password)
-      router.replace('/dashboard')
+      setSignedUp(true)
+      // Let the AuthGuard handle the redirect when user state updates
+      // router.replace('/dashboard') - Removed to prevent race condition
     } catch (err) {
       // Error is already set in the context
       console.error('Signup failed:', err)
@@ -121,7 +124,7 @@ export default function SignupForm() {
             disabled={isSubmitting}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-slate-900 bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting ? 'Creating account...' : 'Create account'}
+            {signedUp ? 'Account created! Redirecting...' : isSubmitting ? 'Creating account...' : 'Create account'}
           </button>
 
           <div className="text-center">
