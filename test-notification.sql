@@ -18,8 +18,7 @@ AND table_name = 'notifications'
 ORDER BY ordinal_position;
 
 -- Let's also check what users exist
-SELECT id, email, username FROM users LIMIT 5;
-
+SELECT id, email FROM public.users LIMIT 5;
 -- And check what books exist with their owners
 SELECT 
   b.id as book_id,
