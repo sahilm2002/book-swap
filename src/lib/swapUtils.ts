@@ -272,7 +272,7 @@ export async function cancelSwapRequest(cancellation: SwapCancellation): Promise
   }
 }
 
-// 7. Complete swap (both users confirm receipt) - now uses atomic DB function
+// 7. Complete swap (atomic via PostgreSQL function)
 export async function completeSwap(completion: SwapCompletion): Promise<{ success: boolean; error?: string }> {
   try {
     const { data: { user } } = await supabase.auth.getUser()
