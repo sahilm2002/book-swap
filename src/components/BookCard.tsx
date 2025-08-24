@@ -646,42 +646,6 @@ export default function BookCard({
                 </button>
               )}
 
-              {/* Test button for debugging */}
-              {process.env.NODE_ENV === 'development' && (
-                <button
-                  onClick={async () => {
-                    console.log('=== TESTING DATABASE UPDATE ===')
-                    const currentUserSwapRequest = book.swapRequests?.find(swap => 
-                      swap.requester_id === user?.id
-                    )
-                    console.log('Current swap request:', currentUserSwapRequest)
-                    
-                    if (currentUserSwapRequest) {
-                      console.log('Testing database update...')
-                      const { error } = await supabase
-                        .from('book_swaps')
-                        .update({ 
-                          status: 'cancelled',
-                          cancelled_at: new Date().toISOString()
-                        })
-                        .eq('id', currentUserSwapRequest.id)
-                      
-                      if (error) {
-                        console.error('Test update failed:', error)
-                      } else {
-                        console.log('Test update succeeded!')
-                        // Force refresh
-                        window.location.reload()
-                      }
-                    }
-                  }}
-                  className="btn-secondary text-xs px-2 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300"
-                  title="Test database update (dev only)"
-                >
-                  Test DB
-                </button>
-              )}
-
               {onSwapRequest && book.availableForSwap && (
                 (() => {
                   // Use the getSwapButtonState function to determine button state
