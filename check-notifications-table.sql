@@ -34,11 +34,14 @@ ORDER BY created_at DESC
 LIMIT 10;
 
 -- Check if there are any notifications for the specific user
--- Replace 'sahil.mb@gmail.com' with the actual user ID if needed
+-- Use :user_email as a placeholder for the user's email address; do not hardcode real email addresses
 SELECT 
   n.*,
   u.email as user_email
 FROM notifications n
 JOIN auth.users u ON n.user_id = u.id
-WHERE u.email = 'sahil.mb@gmail.com'
+WHERE
+    notification_type = 'email'
+    AND recipient_email = :user_email -- use a parameter or placeholder here
+    AND sent_at >= CURRENT_DATE - INTERVAL '7 days'
 ORDER BY n.created_at DESC;
