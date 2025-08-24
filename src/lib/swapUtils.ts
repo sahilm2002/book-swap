@@ -139,6 +139,26 @@ export async function createSwapRequest(request: SwapRequest, userId: string): P
 
     if (error) throw error
 
+    // Insert swap history for both users
+    await supabase
+      .from('swap_history')
+      .insert([
+        {
+          swap_id: swap.id,
+          user_id: swap.requester_id,
+          partner_id: swap.book_owner_id, // changed from swap.book_requested_id to swap.book_owner_id
+          action: 'requested',
+          timestamp: swap.created_at,
+        },
+        {
+          swap_id: swap.id,
+          user_id: swap.book_owner_id,
+          partner_id: swap.requester_id, // changed from swap.book_requested_id to swap.requester_id
+          action: 'received_request',
+          timestamp: swap.created_at,
+        }
+      ])
+
     console.log('Swap request created successfully:', swap.id)
     return { success: true, swapId: swap.id }
   } catch (error) {
