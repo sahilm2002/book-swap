@@ -92,9 +92,13 @@ CREATE POLICY "Users can create swap requests" ON book_swaps
 
 -- Book owners can update swap status (approve/deny/cancel)
 CREATE POLICY "Book owners can update swap status" ON book_swaps
+-- Book owners can update swap status (approve/deny/cancel)
+CREATE POLICY "Book owners can update swap status" ON book_swaps
   FOR UPDATE USING (
     auth.uid() IN (
-      SELECT user_id FROM books WHERE id = book_requested_id
+      SELECT owner_id FROM books WHERE id = book_requested_id
+      UNION
+      SELECT owner_id FROM books WHERE id = book_offered_id
     )
   );
 
