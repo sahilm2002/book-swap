@@ -1,12 +1,11 @@
 import { supabase } from './supabase'
 
 class SessionManager {
-  private activityTimeout: NodeJS.Timeout | null = null
-  private sessionRefreshInterval: NodeJS.Timeout | null = null
+  private activityTimeout: ReturnType<typeof setTimeout> | null = null
+  private sessionRefreshInterval: ReturnType<typeof setInterval> | null = null
   private readonly SESSION_TIMEOUT_MS = (parseInt(process.env.NEXT_PUBLIC_SESSION_TIMEOUT_MINUTES || '15') * 60 * 1000) // 15 minutes default
   private readonly REFRESH_INTERVAL_MS = (parseInt(process.env.NEXT_PUBLIC_SESSION_REFRESH_INTERVAL_MINUTES || '5') * 60 * 1000) // 5 minutes default
   private readonly ACTIVITY_TIMEOUT_MS = (parseInt(process.env.NEXT_PUBLIC_ACTIVITY_TIMEOUT_MINUTES || '14') * 60 * 1000) // 14 minutes default
-  
   // Handler references for proper cleanup
   private visibilityHandler: (() => void) | null = null
   private focusHandler: (() => void) | null = null
