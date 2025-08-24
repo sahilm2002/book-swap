@@ -288,7 +288,7 @@ export default function BrowsePage() {
         swapStatus: book.swapStatus ?? book.swap_status ?? 'available', // ensure swapStatus is present
       }));
 
-      setBooks(transformedBooks)
+      setBooks(transformedBooks);
 
       // Fetch owner information for all books
       await fetchOwnerInformation(transformedBooks)
