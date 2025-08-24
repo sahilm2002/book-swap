@@ -283,37 +283,10 @@ export default function BrowsePage() {
       console.log('Filtered books:', otherUsersBooks)
 
       // Transform the data to match the Book type
-      const transformedBooks: BookWithReviews[] = otherUsersBooks.map(book => {
-        // Find swaps for this book
-        const bookSwaps = swapRequests.filter(swap => swap.book_requested_id === book.id)
-        
-        return {
-          id: book.id,
-          title: book.title,
-          author: book.author,
-          isbn: book.isbn,
-          genre: book.genre || [],
-          description: book.description,
-          coverImage: book.cover_image || null,
-          publishedYear: book.published_year,
-          pageCount: book.page_count,
-          language: book.language,
-          condition: book.condition,
-          ownerId: book.owner_id,
-          location: book.location,
-          availableForSwap: book.available_for_swap,
-          swap_status: book.swap_status,
-          created_at: book.created_at,
-          updated_at: book.updated_at,
-          averageRating: 0,
-          reviewCount: 0,
-          // Add swap request information
-          swapRequests: bookSwaps,
-          // Owner information (will be populated later)
-          ownerUsername: undefined,
-          ownerEmail: undefined
-        }
-      }) || []
+      const transformedBooks: BookWithReviews[] = otherUsersBooks.map(book => ({
+        ...book,
+        swapStatus: book.swapStatus ?? book.swap_status ?? 'available', // ensure swapStatus is present
+      }));
 
       setBooks(transformedBooks)
 
