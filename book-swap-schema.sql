@@ -55,21 +55,41 @@ CREATE INDEX IF NOT EXISTS idx_swap_history_swap_date ON swap_history(swap_date)
 
 -- 4. Create notifications table for in-app notifications
 CREATE TABLE IF NOT EXISTS notifications (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('swap_request', 'swap_approved', 'swap_denied', 'swap_cancelled', 'swap_completed', 'offer_cancelled')),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('email', 'swap_request', 'swap_approved', 'swap_denied', 'swap_cancelled', 'system')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
-  related_swap_id UUID REFERENCES book_swaps(id) ON DELETE CASCADE,
+  related_swap_id UUID REFERENCES book_swaps(id) ON DELETE SET NULL,
   read_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for notifications
+-- Trigger to update updated_at on row changes
+CREATE OR REPLACE FUNCTION update_notification_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_notification_updated_at ON notifications;
+CREATE TRIGGER set_notification_updated_at
+BEFORE UPDATE ON notifications
+FOR EACH ROW
+EXECUTE FUNCTION update_notification_updated_at();
+
+-- Unified indexes
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
 CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications(read_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+
+-- Prevent duplicate event notifications (example: same user, type, swap, and title)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique_event
+ON notifications(user_id, type, related_swap_id, title);
 
 -- 5. Enable Row Level Security on all new tables
 ALTER TABLE book_swaps ENABLE ROW LEVEL SECURITY;
