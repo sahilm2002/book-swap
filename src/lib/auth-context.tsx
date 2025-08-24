@@ -202,12 +202,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const SUPABASE_DB_NAMES = ['supabase-auth-client', 'supabase-db']; // adjust if needed
+
   const signOut = async () => {
     try {
-      // Supabase sign out
-      await supabase.auth.signOut()
+      await supabase.auth.signOut();
     } catch (err) {
-      console.error('Supabase signOut error:', err)
+      console.error('Supabase signOut error:', err);
     }
 
     // Remove only Supabase/auth-related keys from localStorage
@@ -221,11 +222,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           key === 'refresh_token' ||
           key === 'user_logged_out'
         ) {
-          localStorage.removeItem(key)
+          localStorage.removeItem(key);
         }
-      })
+      });
     } catch (err) {
-      console.warn('Error clearing localStorage keys:', err)
+      console.warn('Error clearing localStorage keys:', err);
     }
 
     // Remove only Supabase/auth-related keys from sessionStorage
@@ -238,17 +239,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           key === 'access_token' ||
           key === 'refresh_token'
         ) {
-          sessionStorage.removeItem(key)
+          sessionStorage.removeItem(key);
         }
-      })
+      });
     } catch (err) {
-      console.warn('Error clearing sessionStorage keys:', err)
+      console.warn('Error clearing sessionStorage keys:', err);
     }
 
     // Remove only Supabase auth cookies
     try {
       document.cookie.split(';').forEach(cookie => {
-        const name = cookie.split('=')[0].trim()
+        const name = cookie.split('=')[0].trim();
         if (
           name.startsWith('sb-') ||
           name.startsWith('supabase.') ||
@@ -256,34 +257,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name === 'access_token' ||
           name === 'refresh_token'
         ) {
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
         }
-      })
+      });
     } catch (err) {
-      console.warn('Error clearing cookies:', err)
+      console.warn('Error clearing cookies:', err);
     }
 
     // Remove only Supabase client DB from indexedDB
     try {
-      const supabaseDbNames = ['supabase-auth-client', 'supabase-db'] // adjust if your DB name differs
-      const req = indexedDB.databases ? indexedDB.databases() : Promise.resolve([])
-      req.then(dbs => {
-        dbs.forEach(db => {
-          if (supabaseDbNames.includes(db.name)) {
-            indexedDB.deleteDatabase(db.name)
-          }
-        })
-      })
+      if (indexedDB.databases) {
+        indexedDB.databases().then(dbs => {
+          dbs.forEach(db => {
+            if (db.name && SUPABASE_DB_NAMES.includes(db.name)) {
+              indexedDB.deleteDatabase(db.name);
+            }
+          });
+        });
+      }
     } catch (err) {
-      console.warn('Error clearing indexedDB:', err)
+      console.warn('Error clearing indexedDB:', err);
     }
 
     // Set local state and user_logged_out flag
     try {
-      localStorage.setItem('user_logged_out', 'true')
+      localStorage.setItem('user_logged_out', 'true');
       // ...any other local state clearing needed...
     } catch (err) {
-      console.warn('Error setting user_logged_out flag:', err)
+      console.warn('Error setting user_logged_out flag:', err);
     }
   }
 
