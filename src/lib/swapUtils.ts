@@ -441,17 +441,18 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
 
 // 12. Transfer book ownership (atomic)
 export async function transferBookOwnership(swap: { book_requested_id: string; book_offered_id: string }) {
-  // Start transaction (requires PostgREST or direct SQL, fallback to sequential for Supabase JS)
+  // Note: Supabase JS does not support multi-statement transactions directly.
+  // For true atomicity, use a PostgreSQL function or transaction via PostgREST.
   try {
     // 1. Get previous owner of requested book
     const { data: requestedBook, error: selectError } = await supabase
       .from('books')
-      .select('user_id')
+      .select('owner_id') // changed from user_id to owner_id
       .eq('id', swap.book_requested_id)
       .single()
 
     if (selectError) throw selectError
-    const previousOwnerId = requestedBook.user_id
+    const previousOwnerId = requestedBook.owner_id
 
     // 2. Update offered book's user_id to previous owner of requested book
     const { error: updateError } = await supabase
