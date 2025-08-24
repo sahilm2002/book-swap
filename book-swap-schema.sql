@@ -91,6 +91,10 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique_event
 ON notifications(user_id, type, related_swap_id, title);
 
+-- Add UNIQUE index for idempotency
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_related_swap_type
+ON notifications(related_swap_id, type);
+
 -- 5. Enable Row Level Security on all new tables
 ALTER TABLE book_swaps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE swap_history ENABLE ROW LEVEL SECURITY;
@@ -196,24 +200,26 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_notification_id UUID;
 BEGIN
-  -- Create notification for swap request
-  -- Notify book owner about new swap request
-  BEGIN
-    INSERT INTO notifications (user_id, type, title, message, related_swap_id)
-    SELECT 
-      b.owner_id, -- changed from b.user_id to b.owner_id
-      'swap_request',
-      'New Swap Request',
-      'Someone wants to swap "' || bo.title || '" for your book "' || br.title || '"',
-      NEW.id
-    FROM books b
-    JOIN books br ON br.id = NEW.book_requested_id
-    JOIN books bo ON bo.id = NEW.book_offered_id
-    WHERE b.id = NEW.book_requested_id;
-  EXCEPTION WHEN OTHERS THEN
-    -- Log error but don't fail the transaction
-    RAISE WARNING 'Failed to create notification: %', SQLERRM;
-  END;
+  -- Only create swap request notification on INSERT (new swap request)
+  IF TG_OP = 'INSERT' THEN
+    -- Prevent duplicate notification for the same swap and type
+    IF NOT EXISTS (
+      SELECT 1 FROM notifications
+      WHERE related_swap_id = NEW.id AND type = 'swap_request'
+    ) THEN
+      INSERT INTO notifications (user_id, type, title, message, related_swap_id)
+      SELECT 
+        b.owner_id,
+        'swap_request',
+        'New Swap Request',
+        'Someone wants to swap "' || bo.title || '" for your book "' || br.title || '"',
+        NEW.id
+      FROM books b
+      JOIN books br ON br.id = NEW.book_requested_id
+      JOIN books bo ON bo.id = NEW.book_offered_id
+      WHERE b.id = NEW.book_requested_id;
+    END IF;
+  END IF;
 
   -- Create notification for swap approval/denial
   IF NEW.status IN ('approved', 'denied') AND OLD.status = 'pending' THEN
@@ -230,25 +236,31 @@ BEGIN
       NEW.id
     );
   END IF;
-  
+
   -- Example notification insert (fix user_id reference)
-  INSERT INTO notifications (
-    user_id,
-    type,
-    title,
-    message,
-    related_swap_id
-  )
-  SELECT 
-    b.owner_id, -- changed from b.user_id to b.owner_id
-    'swap_cancelled',
-    'Swap Request Cancelled',
-    CONCAT('A swap request for "', b.title, '" has been cancelled.'),
-    bs.id
-  FROM book_swaps bs
-  JOIN books b ON bs.book_requested_id = b.id
-  WHERE bs.status = 'cancelled';
-  
+  IF NEW.status = 'cancelled' AND OLD.status <> 'cancelled' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM notifications
+      WHERE related_swap_id = NEW.id AND type = 'swap_cancelled'
+    ) THEN
+      INSERT INTO notifications (
+        user_id,
+        type,
+        title,
+        message,
+        related_swap_id
+      )
+      SELECT 
+        b.owner_id,
+        'swap_cancelled',
+        'Swap Request Cancelled',
+        CONCAT('A swap request for "', b.title, '" has been cancelled.'),
+        NEW.id
+      FROM books b
+      WHERE b.id = NEW.book_requested_id;
+    END IF;
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
