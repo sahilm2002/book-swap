@@ -173,20 +173,36 @@ CREATE OR REPLACE FUNCTION create_swap_notification()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Create notification for swap request
+CREATE OR REPLACE FUNCTION create_swap_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_notification_id UUID;
+BEGIN
+  -- Create notification for swap request
   IF NEW.status = 'pending' THEN
     -- Notify book owner about new swap request
-    INSERT INTO notifications (user_id, type, title, message, related_swap_id)
-    SELECT 
-      b.user_id,
-      'swap_request',
-      'New Swap Request',
-      'Someone wants to swap "' || bo.title || '" for your book "' || br.title || '"',
-      NEW.id
-    FROM books b
-    JOIN books br ON br.id = NEW.book_requested_id
-    JOIN books bo ON bo.id = NEW.book_offered_id
-    WHERE b.id = NEW.book_requested_id;
+    BEGIN
+      INSERT INTO notifications (user_id, type, title, message, related_swap_id)
+      SELECT 
+        b.user_id,
+        'swap_request',
+        'New Swap Request',
+        'Someone wants to swap "' || bo.title || '" for your book "' || br.title || '"',
+        NEW.id
+      FROM books b
+      JOIN books br ON br.id = NEW.book_requested_id
+      JOIN books bo ON bo.id = NEW.book_offered_id
+      WHERE b.id = NEW.book_requested_id;
+    EXCEPTION WHEN OTHERS THEN
+      -- Log error but don't fail the transaction
+      RAISE WARNING 'Failed to create notification: %', SQLERRM;
+    END;
   END IF;
+
+  -- ... rest of trigger logic remains unchanged ...
+
+END;
+$$ LANGUAGE plpgsql;
   
   -- Create notification for swap approval/denial
   IF NEW.status IN ('approved', 'denied') AND OLD.status = 'pending' THEN
