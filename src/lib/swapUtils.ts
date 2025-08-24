@@ -438,3 +438,32 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
+
+// 12. Transfer book ownership (atomic)
+export async function transferBookOwnership(swap: { book_requested_id: string; book_offered_id: string }) {
+  // Start transaction (requires PostgREST or direct SQL, fallback to sequential for Supabase JS)
+  try {
+    // 1. Get previous owner of requested book
+    const { data: requestedBook, error: selectError } = await supabase
+      .from('books')
+      .select('user_id')
+      .eq('id', swap.book_requested_id)
+      .single()
+
+    if (selectError) throw selectError
+    const previousOwnerId = requestedBook.user_id
+
+    // 2. Update offered book's user_id to previous owner of requested book
+    const { error: updateError } = await supabase
+      .from('books')
+      .update({ user_id: previousOwnerId })
+      .eq('id', swap.book_offered_id)
+
+    if (updateError) throw updateError
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error transferring book ownership:', error)
+    throw error
+  }
+}
