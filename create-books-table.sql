@@ -17,7 +17,7 @@ BEGIN
             published_year INTEGER,
             page_count INTEGER,
             language TEXT DEFAULT 'English',
-            condition TEXT NOT NULL DEFAULT 'good',
+            condition TEXT NOT NULL DEFAULT 'good' CHECK (condition IN ('new', 'like_new', 'very_good', 'good', 'acceptable', 'poor')),
             owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
             location TEXT DEFAULT 'Unknown',
             available_for_swap BOOLEAN DEFAULT false,
