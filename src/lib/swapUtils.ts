@@ -196,12 +196,17 @@ export async function getUserSwapRequests(): Promise<{ swaps: SwapWithBooks[]; e
       .from('book_swaps')
       .select(`
         *,
-        book_requested:books!book_swaps_book_requested_id_fkey(*),
-        book_offered:books!book_swaps_book_offered_id_fkey(*),
-        requester:users!book_swaps_requester_id_fkey(full_name, email),
-        book_owner:users!books_user_id_fkey(full_name, email)
+        book_requested:books!book_swaps_book_requested_id_fkey(
+          *,
+          owner:users!books_user_id_fkey(full_name, email)
+        ),
+        book_offered:books!book_swaps_book_offered_id_fkey(
+          *,
+          owner:users!books_user_id_fkey(full_name, email)
+        ),
+        requester:users!book_swaps_requester_id_fkey(full_name, email)
       `)
-      .or(`requester_id.eq.${user.id},book_requested.user_id.eq.${user.id}`)
+      .or(`requester_id.eq.${user.id},book_requested.owner_id.eq.${user.id},book_offered.owner_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -210,18 +215,16 @@ export async function getUserSwapRequests(): Promise<{ swaps: SwapWithBooks[]; e
       ...swap,
       book_requested: {
         ...swap.book_requested,
-        owner_name: swap.book_owner?.full_name,
-        owner_email: swap.book_owner?.email
+        owner_name: swap.book_requested.owner?.full_name,
+        owner_email: swap.book_requested.owner?.email
       },
       book_offered: {
         ...swap.book_offered,
-        owner_name: swap.requester?.full_name,
-        owner_email: swap.requester?.email
+        owner_name: swap.book_offered.owner?.full_name,
+        owner_email: swap.book_offered.owner?.email
       },
       requester_name: swap.requester?.full_name,
-      requester_email: swap.requester?.email,
-      book_owner_name: swap.book_owner?.full_name,
-      book_owner_email: swap.book_owner?.email
+      requester_email: swap.requester?.email
     })) || []
 
     return { swaps: swapsWithBooks }
