@@ -33,7 +33,10 @@ CREATE POLICY "Users can view own notifications" ON notifications
 
 -- Users can insert notifications (for system notifications)
 CREATE POLICY "Users can insert notifications" ON notifications
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id
+    OR current_setting('app.current_user_role', true) = 'service_role'
+  );
 
 -- Users can update their own notifications (mark as read)
 CREATE POLICY "Users can update own notifications" ON notifications
