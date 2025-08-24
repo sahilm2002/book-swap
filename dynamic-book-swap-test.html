@@ -233,15 +233,28 @@
                 'bg-blue-600 border-blue-500'
             } text-white max-w-sm`;
             
-            notificationEl.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-semibold">${message}</p>
-                        <p class="text-xs opacity-75">${notification.timestamp.toLocaleTimeString()}</p>
-                    </div>
-                    <button onclick="removeNotification(${notification.id})" class="ml-2 text-white/70 hover:text-white">×</button>
-                </div>
-            `;
+            // Build content safely without innerHTML
+            notificationEl.setAttribute('role', 'status');
+            notificationEl.setAttribute('aria-live', 'polite');
+            const row = document.createElement('div');
+            row.className = 'flex justify-between items-start';
+            const left = document.createElement('div');
+            const title = document.createElement('p');
+            title.className = 'font-semibold';
+            title.textContent = message;
+            const time = document.createElement('p');
+            time.className = 'text-xs opacity-75';
+            time.textContent = notification.timestamp.toLocaleTimeString();
+            left.appendChild(title);
+            left.appendChild(time);
+            const btn = document.createElement('button');
+            btn.className = 'ml-2 text-white/70 hover:text-white';
+            btn.setAttribute('aria-label', 'Dismiss notification');
+            btn.textContent = '×';
+            btn.addEventListener('click', () => removeNotification(notification.id));
+            row.appendChild(left);
+            row.appendChild(btn);
+            notificationEl.appendChild(row);
             
             document.getElementById('notifications').appendChild(notificationEl);
             
