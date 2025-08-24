@@ -272,71 +272,22 @@ export async function cancelSwapRequest(cancellation: SwapCancellation): Promise
   }
 }
 
-// 7. Complete swap (both users confirm receipt)
+// 7. Complete swap (both users confirm receipt) - now uses atomic DB function
 export async function completeSwap(completion: SwapCompletion): Promise<{ success: boolean; error?: string }> {
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    // Get the swap details
-    const { data: swap, error: swapError } = await supabase
-      .from('book_swaps')
-      .select('*')
-      .eq('id', completion.swap_id)
-      .single()
+    // Call atomic PostgreSQL function for swap completion
+    const { error } = await supabase.rpc('complete_swap', {
+      p_swap_id: completion.swap_id,
+      p_user_id: user.id
+    })
 
-    if (swapError) throw swapError
-
-    // Start a transaction to update multiple tables
-    const { error: updateError } = await supabase
-      .from('book_swaps')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', completion.swap_id)
-
-    if (updateError) throw updateError
-
-    // Transfer book ownership
-    const { error: book1Error } = await supabase
-      .from('books')
-      .update({ user_id: swap.requester_id })
-      .eq('id', swap.book_requested_id)
-
-    if (book1Error) throw book1Error
-
-    const { error: book2Error } = await supabase
-      .from('books')
-      .update({ user_id: swap.book_requested_id })
-      .eq('id', swap.book_offered_id)
-
-    if (book2Error) throw book2Error
-
-    // Create swap history records
-    const { error: historyError } = await supabase
-      .from('swap_history')
-      .insert([
-        {
-          swap_id: completion.swap_id,
-          user_id: swap.requester_id,
-          partner_id: swap.book_requested_id,
-          book_given_id: swap.book_offered_id,
-          book_received_id: swap.book_requested_id,
-          status: 'completed'
-        },
-        {
-          swap_id: completion.swap_id,
-          user_id: swap.book_requested_id,
-          partner_id: swap.requester_id,
-          book_given_id: swap.book_requested_id,
-          book_received_id: swap.book_offered_id,
-          status: 'completed'
-        }
-      ])
-
-    if (historyError) throw historyError
+    if (error) {
+      console.error('Error completing swap (RPC):', error)
+      return { success: false, error: error.message || 'Failed to complete swap' }
+    }
 
     return { success: true }
   } catch (error) {
