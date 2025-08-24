@@ -21,7 +21,9 @@ export interface Book {
   updated_at?: string // optional snake_case for DB compatibility
   swapRequests?: Array<{
     id: string
-    requesterId: string
+    // Accept both DB and domain shapes; normalize at boundaries.
+    requester_id?: string
+    requesterId?: string
     status: SwapStatus // narrow to enum
     createdAt?: string
     updatedAt?: string
