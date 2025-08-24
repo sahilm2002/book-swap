@@ -447,7 +447,7 @@ export async function transferBookOwnership(swap: { book_requested_id: string; b
     // 1. Get previous owner of requested book
     const { data: requestedBook, error: selectError } = await supabase
       .from('books')
-      .select('owner_id') // changed from user_id to owner_id
+      .select('owner_id')
       .eq('id', swap.book_requested_id)
       .single()
 
@@ -457,7 +457,7 @@ export async function transferBookOwnership(swap: { book_requested_id: string; b
     // 2. Update offered book's owner_id to previous owner of requested book
     const { error: updateError } = await supabase
       .from('books')
-      .update({ owner_id: previousOwnerId }) // changed from user_id to owner_id
+      .update({ owner_id: previousOwnerId })
       .eq('id', swap.book_offered_id)
 
     if (updateError) throw updateError
