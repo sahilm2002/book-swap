@@ -204,98 +204,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('Starting signOut process...')
-      
-      // Clear local state first
-      setUser(null)
-      setProfile(null)
-      setSession(null)
-      setLoading(false)
-      
-      // Sign out from Supabase with timeout protection
-      const signOutPromise = supabase.auth.signOut()
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Supabase signOut timeout')), 3000)
-      )
-      
-      // Race between signOut and timeout
-      try {
-        await Promise.race([signOutPromise, timeoutPromise])
-      } catch (error) {
-        if (error instanceof Error && error.message === 'Supabase signOut timeout') {
-          console.log('SignOut timed out, continuing with cleanup...')
-        } else {
-          console.error('Supabase signOut error:', error)
-          throw error
+      // Supabase sign out
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Supabase signOut error:', err)
+    }
+
+    // Remove only Supabase/auth-related keys from localStorage
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (
+          key.startsWith('sb-') ||
+          key.startsWith('supabase.') ||
+          key.startsWith('supabase.auth.') ||
+          key === 'access_token' ||
+          key === 'refresh_token' ||
+          key === 'user_logged_out'
+        ) {
+          localStorage.removeItem(key)
         }
-      }
-      
-      // CRITICAL: Clear ALL Supabase-related storage
-      // Clear localStorage items
-      const keysToRemove = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth'))) {
-          keysToRemove.push(key)
+      })
+    } catch (err) {
+      console.warn('Error clearing localStorage keys:', err)
+    }
+
+    // Remove only Supabase/auth-related keys from sessionStorage
+    try {
+      Object.keys(sessionStorage).forEach(key => {
+        if (
+          key.startsWith('sb-') ||
+          key.startsWith('supabase.') ||
+          key.startsWith('supabase.auth.') ||
+          key === 'access_token' ||
+          key === 'refresh_token'
+        ) {
+          sessionStorage.removeItem(key)
         }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key))
-      
-      // Clear specific known keys
-      localStorage.removeItem('supabase.auth.token')
-      localStorage.removeItem('sb-access-token')
-      localStorage.removeItem('sb-refresh-token')
-      localStorage.removeItem('supabase.auth.expires_at')
-      localStorage.removeItem('supabase.auth.refresh_token')
-      localStorage.removeItem('supabase.auth.access_token')
-      
-      // Clear all cookies
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      // Clear sessionStorage as well
-      sessionStorage.clear()
-      
-      // Force Supabase to forget the session
-      try {
-        await supabase.auth.refreshSession()
-      } catch (refreshError) {
-        console.log('Session refresh error (expected during logout):', refreshError)
-      }
-      
-      // Additional cleanup - clear any remaining auth data
-      if (typeof window !== 'undefined') {
-        // Clear any indexedDB data if it exists
-        if ('indexedDB' in window) {
-          try {
-            indexedDB.deleteDatabase('supabase')
-          } catch (e) {
-            console.log('IndexedDB cleanup error (expected):', e)
+      })
+    } catch (err) {
+      console.warn('Error clearing sessionStorage keys:', err)
+    }
+
+    // Remove only Supabase auth cookies
+    try {
+      document.cookie.split(';').forEach(cookie => {
+        const name = cookie.split('=')[0].trim()
+        if (
+          name.startsWith('sb-') ||
+          name.startsWith('supabase.') ||
+          name.startsWith('supabase.auth.') ||
+          name === 'access_token' ||
+          name === 'refresh_token'
+        ) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+        }
+      })
+    } catch (err) {
+      console.warn('Error clearing cookies:', err)
+    }
+
+    // Remove only Supabase client DB from indexedDB
+    try {
+      const supabaseDbNames = ['supabase-auth-client', 'supabase-db'] // adjust if your DB name differs
+      const req = indexedDB.databases ? indexedDB.databases() : Promise.resolve([])
+      req.then(dbs => {
+        dbs.forEach(db => {
+          if (supabaseDbNames.includes(db.name)) {
+            indexedDB.deleteDatabase(db.name)
           }
-        }
-      }
-      
-      // Set logout flag to prevent session restoration
+        })
+      })
+    } catch (err) {
+      console.warn('Error clearing indexedDB:', err)
+    }
+
+    // Set local state and user_logged_out flag
+    try {
       localStorage.setItem('user_logged_out', 'true')
-      
-      console.log('Successfully signed out from AuthContext - all data cleared')
-    } catch (error) {
-      console.error('Error signing out:', error)
-      // Even if there's an error, ensure we clear local state and storage
-      setUser(null)
-      setProfile(null)
-      setSession(null)
-      setLoading(false)
-      
-      // Force clear storage even on error
-      localStorage.clear()
-      sessionStorage.clear()
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      throw error
+      // ...any other local state clearing needed...
+    } catch (err) {
+      console.warn('Error setting user_logged_out flag:', err)
     }
   }
 
