@@ -139,25 +139,38 @@ export async function createSwapRequest(request: SwapRequest, userId: string): P
 
     if (error) throw error
 
-    // Insert swap history for both users
+    // After creating the swap, fetch the owner of the requested book for swap_history
+    const { data: requestedBook, error: bookError } = await supabase
+      .from('books')
+      .select('owner_id, user_id')
+      .eq('id', swap.book_requested_id)
+      .single();
+
+    if (bookError || !requestedBook) {
+      throw new Error('Could not find requested book or its owner');
+    }
+
+    // Use owner_id if present, otherwise fallback to user_id
+    const requestedBookOwnerId = requestedBook.owner_id ?? requestedBook.user_id;
+
     await supabase
       .from('swap_history')
       .insert([
         {
           swap_id: swap.id,
           user_id: swap.requester_id,
-          partner_id: swap.book_owner_id, // changed from book_requested_id to book_owner_id (user ID)
+          partner_id: requestedBookOwnerId, // verified owner user id
           action: 'requested',
           timestamp: swap.created_at,
         },
         {
           swap_id: swap.id,
-          user_id: swap.book_owner_id,
-          partner_id: swap.requester_id, // changed from book_requested_id to requester_id (user ID)
+          user_id: requestedBookOwnerId, // counterpart user id
+          partner_id: swap.requester_id,
           action: 'received_request',
           timestamp: swap.created_at,
         }
-      ])
+      ]);
 
     console.log('Swap request created successfully:', swap.id)
     return { success: true, swapId: swap.id }
