@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books & Booze - Dynamic Swap Testing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .notification-enter {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .notification-enter-active {
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 300ms, transform 300ms;
+        }
+        .notification-exit {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-exit-active {
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 300ms, transform 300ms;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <!-- Navigation -->
+    <nav class="bg-slate-900/80 backdrop-blur-sm border-b border-amber-500/20">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-slate-900 font-bold text-sm">B&B</span>
+                    </div>
+                    <span class="text-xl font-bold text-amber-200">Books & Booze</span>
+                </div>
+                <div class="text-amber-400">
+                    <span id="current-user">Demo User (demo@booksandbooze.com)</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Notifications Container -->
+    <div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8 bg-gradient-to-r from-amber-200 via-orange-200 to-amber-200 bg-clip-text text-transparent text-center">
+            Dynamic Book Swap Testing
+        </h1>
+
+        <!-- Stats Dashboard -->
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30">
+                <h3 class="text-amber-200 font-semibold mb-2">Total Books</h3>
+                <p class="text-3xl font-bold text-white" id="total-books">8</p>
+            </div>
+            <div class="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30">
+                <h3 class="text-amber-200 font-semibold mb-2">Active Swaps</h3>
+                <p class="text-3xl font-bold text-white" id="active-swaps">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30">
+                <h3 class="text-amber-200 font-semibold mb-2">Completed</h3>
+                <p class="text-3xl font-bold text-white" id="completed-swaps">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30">
+                <h3 class="text-amber-200 font-semibold mb-2">Notifications</h3>
+                <p class="text-3xl font-bold text-white" id="notification-count">0</p>
+            </div>
+        </div>
+
+        <!-- Available Books Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-amber-200 mb-6">Available Books for Swap</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="available-books">
+                <!-- Books will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- My Books Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-amber-200 mb-6">My Books</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="my-books">
+                <!-- My books will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Active Swaps Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-amber-200 mb-6">Active Swap Requests</h2>
+            <div id="active-swaps-list" class="space-y-4">
+                <!-- Active swaps will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Swap History Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-amber-200 mb-6">Swap History</h2>
+            <div id="swap-history" class="space-y-4">
+                <!-- Swap history will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Selection Modal -->
+    <div id="book-selection-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-40">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-amber-500/30">
+                <h3 class="text-xl font-bold text-amber-200 mb-4">Select Your Book to Offer</h3>
+                <div id="my-books-selection" class="space-y-3 mb-6">
+                    <!-- My books for selection -->
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeBookSelectionModal()" class="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-500 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let books = [
+            {
+                id: '1',
+                title: 'The Great Gatsby',
+                author: 'F. Scott Fitzgerald',
+                genre: ['Classic Literature'],
+                condition: 'Very Good',
+                owner: 'Alice Johnson',
+                isMyBook: false,
+                available: true
+            },
+            {
+                id: '2',
+                title: 'To Kill a Mockingbird',
+                author: 'Harper Lee',
+                genre: ['Classic Literature'],
+                condition: 'Good',
+                owner: 'Bob Smith',
+                isMyBook: false,
+                available: true
+            },
+            {
+                id: '3',
+                title: '1984',
+                author: 'George Orwell',
+                genre: ['Dystopian Fiction'],
+                condition: 'Like New',
+                owner: 'Demo User',
+                isMyBook: true,
+                available: true
+            },
+            {
+                id: '4',
+                title: 'Pride and Prejudice',
+                author: 'Jane Austen',
+                genre: ['Romance', 'Classic Literature'],
+                condition: 'Very Good',
+                owner: 'Demo User',
+                isMyBook: true,
+                available: true
+            },
+            {
+                id: '5',
+                title: 'The Catcher in the Rye',
+                author: 'J.D. Salinger',
+                genre: ['Coming of Age'],
+                condition: 'Good',
+                owner: 'Carol Davis',
+                isMyBook: false,
+                available: true
+            },
+            {
+                id: '6',
+                title: 'Brave New World',
+                author: 'Aldous Huxley',
+                genre: ['Science Fiction'],
+                condition: 'Very Good',
+                owner: 'Demo User',
+                isMyBook: true,
+                available: true
+            },
+            {
+                id: '7',
+                title: 'The Hobbit',
+                author: 'J.R.R. Tolkien',
+                genre: ['Fantasy'],
+                condition: 'Like New',
+                owner: 'David Wilson',
+                isMyBook: false,
+                available: true
+            },
+            {
+                id: '8',
+                title: 'Animal Farm',
+                author: 'George Orwell',
+                genre: ['Political Satire'],
+                condition: 'Good',
+                owner: 'Eva Martinez',
+                isMyBook: false,
+                available: true
+            }
+        ];
+
+        let swaps = [];
+        let swapHistory = [];
+        let notifications = [];
+        let selectedBookForRequest = null;
+
+        // Utility Functions
+        function showNotification(message, type = 'info') {
+            const notification = {
+                id: Date.now(),
+                message,
+                type,
+                timestamp: new Date()
+            };
+            
+            notifications.unshift(notification);
+            updateNotificationCount();
+            
+            const notificationEl = document.createElement('div');
+            notificationEl.className = `p-4 rounded-lg shadow-lg border notification-enter ${
+                type === 'success' ? 'bg-green-600 border-green-500' :
+                type === 'error' ? 'bg-red-600 border-red-500' :
+                type === 'warning' ? 'bg-yellow-600 border-yellow-500' :
+                'bg-blue-600 border-blue-500'
+            } text-white max-w-sm`;
+            
+            notificationEl.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold">${message}</p>
+                        <p class="text-xs opacity-75">${notification.timestamp.toLocaleTimeString()}</p>
+                    </div>
+                    <button onclick="removeNotification(${notification.id})" class="ml-2 text-white/70 hover:text-white">×</button>
+                </div>
+            `;
+            
+            document.getElementById('notifications').appendChild(notificationEl);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notificationEl.classList.remove('notification-enter');
+                notificationEl.classList.add('notification-enter-active');
+            }, 10);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                removeNotification(notification.id);
+            }, 5000);
+        }
+
+        function removeNotification(id) {
+            notifications = notifications.filter(n => n.id !== id);
+            updateNotificationCount();
+            
+            const notificationEl = document.querySelector(`[onclick="removeNotification(${id})"]`)?.parentElement?.parentElement;
+            if (notificationEl) {
+                notificationEl.classList.add('notification-exit-active');
+                setTimeout(() => {
+                    notificationEl.remove();
+                }, 300);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('total-books').textContent = books.length;
+            document.getElementById('active-swaps').textContent = swaps.filter(s => ['pending', 'approved'].includes(s.status)).length;
+            document.getElementById('completed-swaps').textContent = swaps.filter(s => s.status === 'completed').length;
+        }
+
+        function updateNotificationCount() {
+            document.getElementById('notification-count').textContent = notifications.length;
+        }
+
+        function createBookCard(book, isMyBook = false) {
+            const statusBadge = book.available ? 
+                '<span class="px-2 py-1 bg-green-600 text-white text-xs rounded-full">Available</span>' :
+                '<span class="px-2 py-1 bg-red-600 text-white text-xs rounded-full">Unavailable</span>';
+
+            const actionButton = isMyBook ? 
+                `<button onclick="toggleBookAvailability('${book.id}')" class="w-full px-4 py-2 ${book.available ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white rounded-lg transition-colors">
+                    ${book.available ? 'Mark Unavailable' : 'Mark Available'}
+                </button>` :
+                `<button onclick="requestSwap('${book.id}')" class="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors ${!book.available ? 'opacity-50 cursor-not-allowed' : ''}" ${!book.available ? 'disabled' : ''}>
+                    Request Swap
+                </button>`;
+
+            return `
+                <div class="bg-gradient-to-br from-slate-800/80 to-slate-700/80 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30 hover:border-amber-400/50 transition-all duration-300">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-lg font-semibold text-amber-200 line-clamp-2">${book.title}</h3>
+                        ${statusBadge}
+                    </div>
+                    <p class="text-slate-300 mb-2">by ${book.author}</p>
+                    <p class="text-sm text-slate-400 mb-2">Genre: ${book.genre.join(', ')}</p>
+                    <p class="text-sm text-slate-400 mb-2">Condition: ${book.condition}</p>
+                    <p class="text-sm text-slate-400 mb-4">Owner: ${book.owner}</p>
+                    ${actionButton}
+                </div>
+            `;
+        }
+
+        function createSwapCard(swap) {
+            const statusColor = {
+                pending: 'bg-yellow-600',
+                approved: 'bg-blue-600',
+                denied: 'bg-red-600',
+                cancelled: 'bg-gray-600',
+                completed: 'bg-green-600'
+            };
+
+            const actions = swap.status === 'pending' ? `
+                <div class="flex gap-2 mt-4">
+                    ${swap.bookRequested.owner === 'Demo User' ? `
+                        <button onclick="approveSwap('${swap.id}')" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors">
+                            Approve
+                        </button>
+                        <button onclick="denySwap('${swap.id}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors">
+                            Deny
+                        </button>
+                    ` : `
+                        <button onclick="cancelSwap('${swap.id}')" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors">
+                            Cancel Request
+                        </button>
+                    `}
+                </div>
+            ` : swap.status === 'approved' ? `
+                <div class="flex gap-2 mt-4">
+                    <button onclick="completeSwap('${swap.id}')" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors">
+                        Mark Complete
+                    </button>
+                    <button onclick="cancelSwap('${swap.id}')" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            ` : '';
+
+            return `
+                <div class="bg-gradient-to-br from-slate-800/80 to-slate-700/80 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-amber-200">Swap Request #${swap.id}</h3>
+                        <span class="px-3 py-1 ${statusColor[swap.status]} text-white text-sm rounded-full">${swap.status.toUpperCase()}</span>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-sm font-semibold text-amber-300 mb-2">Offered Book:</h4>
+                            <p class="text-white">${swap.bookOffered.title}</p>
+                            <p class="text-slate-300 text-sm">by ${swap.bookOffered.author}</p>
+                            <p class="text-slate-400 text-sm">Owner: ${swap.bookOffered.owner}</p>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-amber-300 mb-2">Requested Book:</h4>
+                            <p class="text-white">${swap.bookRequested.title}</p>
+                            <p class="text-slate-300 text-sm">by ${swap.bookRequested.author}</p>
+                            <p class="text-slate-400 text-sm">Owner: ${swap.bookRequested.owner}</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-sm mt-3">Created: ${new Date(swap.createdAt).toLocaleString()}</p>
+                    ${actions}
+                </div>
+            `;
+        }
+
+        // Swap Functions
+        function requestSwap(requestedBookId) {
+            selectedBookForRequest = books.find(b => b.id === requestedBookId);
+            
+            // Show modal with my books
+            const modal = document.getElementById('book-selection-modal');
+            const myBooksContainer = document.getElementById('my-books-selection');
+            
+            const myAvailableBooks = books.filter(b => b.isMyBook && b.available);
+            
+            if (myAvailableBooks.length === 0) {
+                showNotification('You have no available books to offer for swap!', 'warning');
+                return;
+            }
+            
+            myBooksContainer.innerHTML = myAvailableBooks.map(book => `
+                <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div>
+                        <p class="text-white font-semibold">${book.title}</p>
+                        <p class="text-slate-300 text-sm">by ${book.author}</p>
+                    </div>
+                    <button onclick="confirmSwapRequest('${book.id}')" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-sm transition-colors">
+                        Offer This
+                    </button>
+                </div>
+            `).join('');
+            
+            modal.classList.remove('hidden');
+        }
+
+        function confirmSwapRequest(offeredBookId) {
+            const offeredBook = books.find(b => b.id === offeredBookId);
+            
+            const newSwap = {
+                id: (swaps.length + 1).toString(),
+                bookOffered: offeredBook,
+                bookRequested: selectedBookForRequest,
+                requester: 'Demo User',
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+            
+            swaps.push(newSwap);
+            showNotification(`Swap request created for "${selectedBookForRequest.title}"!`, 'success');
+            
+            closeBookSelectionModal();
+            renderActiveSwaps();
+            updateStats();
+        }
+
+        function closeBookSelectionModal() {
+            document.getElementById('book-selection-modal').classList.add('hidden');
+            selectedBookForRequest = null;
+        }
+
+        function approveSwap(swapId) {
+            const swap = swaps.find(s => s.id === swapId);
+            if (swap) {
+                swap.status = 'approved';
+                swap.approvedAt = new Date().toISOString();
+                showNotification(`Swap request approved for "${swap.bookRequested.title}"!`, 'success');
+                renderActiveSwaps();
+                updateStats();
+            }
+        }
+
+        function denySwap(swapId) {
+            const swap = swaps.find(s => s.id === swapId);
+            if (swap) {
+                swap.status = 'denied';
+                showNotification(`Swap request denied for "${swap.bookRequested.title}".`, 'warning');
+                moveToHistory(swap);
+                renderActiveSwaps();
+                renderSwapHistory();
+                updateStats();
+            }
+        }
+
+        function cancelSwap(swapId) {
+            const swap = swaps.find(s => s.id === swapId);
+            if (swap) {
+                swap.status = 'cancelled';
+                swap.cancelledAt = new Date().toISOString();
+                showNotification(`Swap request cancelled for "${swap.bookRequested.title}".`, 'warning');
+                moveToHistory(swap);
+                renderActiveSwaps();
+                renderSwapHistory();
+                updateStats();
+            }
+        }
+
+        function completeSwap(swapId) {
+            const swap = swaps.find(s => s.id === swapId);
+            if (swap) {
+                swap.status = 'completed';
+                swap.completedAt = new Date().toISOString();
+                showNotification(`Swap completed successfully! Enjoy "${swap.bookRequested.title}"!`, 'success');
+                moveToHistory(swap);
+                renderActiveSwaps();
+                renderSwapHistory();
+                updateStats();
+            }
+        }
+
+        function moveToHistory(swap) {
+            swapHistory.unshift({...swap});
+            swaps = swaps.filter(s => s.id !== swap.id);
+        }
+
+        function toggleBookAvailability(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (book) {
+                book.available = !book.available;
+                showNotification(`"${book.title}" marked as ${book.available ? 'available' : 'unavailable'}.`, 'info');
+                renderBooks();
+            }
+        }
+
+        // Render Functions
+        function renderBooks() {
+            const availableBooks = books.filter(b => !b.isMyBook);
+            const myBooks = books.filter(b => b.isMyBook);
+            
+            document.getElementById('available-books').innerHTML = availableBooks.map(book => createBookCard(book, false)).join('');
+            document.getElementById('my-books').innerHTML = myBooks.map(book => createBookCard(book, true)).join('');
+        }
+
+        function renderActiveSwaps() {
+            const activeSwapsList = document.getElementById('active-swaps-list');
+            const activeSwaps = swaps.filter(s => ['pending', 'approved'].includes(s.status));
+            
+            if (activeSwaps.length === 0) {
+                activeSwapsList.innerHTML = '<p class="text-slate-400 text-center py-8">No active swap requests.</p>';
+            } else {
+                activeSwapsList.innerHTML = activeSwaps.map(swap => createSwapCard(swap)).join('');
+            }
+        }
+
+        function renderSwapHistory() {
+            const swapHistoryEl = document.getElementById('swap-history');
+            
+            if (swapHistory.length === 0) {
+                swapHistoryEl.innerHTML = '<p class="text-slate-400 text-center py-8">No swap history yet.</p>';
+            } else {
+                swapHistoryEl.innerHTML = swapHistory.map(swap => createSwapCard(swap)).join('');
+            }
+        }
+
+        // Initialize the application
+        function init() {
+            renderBooks();
+            renderActiveSwaps();
+            renderSwapHistory();
+            updateStats();
+            updateNotificationCount();
+            
+            showNotification('Dynamic Book Swap Testing loaded successfully!', 'success');
+        }
+
+        // Start the application when DOM is ready
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
