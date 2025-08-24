@@ -102,7 +102,7 @@ CREATE POLICY "Users can view swaps they're involved in" ON book_swaps
   FOR SELECT USING (
     auth.uid() = requester_id OR 
     auth.uid() IN (
-      SELECT user_id FROM books WHERE id = book_requested_id
+      SELECT owner_id FROM books WHERE id = book_requested_id OR id = book_offered_id
     )
   );
 
