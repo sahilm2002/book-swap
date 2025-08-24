@@ -228,6 +228,24 @@ $$ LANGUAGE plpgsql;
     );
   END IF;
   
+  -- Example notification insert (fix user_id reference)
+  INSERT INTO notifications (
+    user_id,
+    type,
+    title,
+    message,
+    related_swap_id
+  )
+  SELECT 
+    b.owner_id, -- changed from b.user_id to b.owner_id
+    'swap_cancelled',
+    'Swap Request Cancelled',
+    CONCAT('A swap request for "', b.title, '" has been cancelled.'),
+    bs.id
+  FROM book_swaps bs
+  JOIN books b ON bs.book_requested_id = b.id
+  WHERE bs.status = 'cancelled';
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
