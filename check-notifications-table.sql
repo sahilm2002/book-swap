@@ -16,6 +16,58 @@ WHERE table_schema = 'public'
 AND table_name = 'notifications'
 ORDER BY ordinal_position;
 
+-- Canonical notifications table schema check
+SELECT
+  column_name,
+  data_type,
+  is_nullable,
+  column_default
+FROM information_schema.columns
+WHERE table_name = 'notifications'
+ORDER BY ordinal_position;
+
+-- Check for updated_at column and its trigger
+SELECT
+  trigger_name,
+  event_manipulation,
+  action_statement
+FROM information_schema.triggers
+WHERE event_object_table = 'notifications'
+  AND trigger_name = 'set_notification_updated_at';
+
+-- Check for type CHECK constraint
+SELECT
+  conname,
+  consrc
+FROM pg_constraint
+WHERE conrelid = 'notifications'::regclass
+  AND consrc LIKE '%type IN (%';
+
+-- Check for canonical indexes
+SELECT
+  indexname
+FROM pg_indexes
+WHERE tablename = 'notifications'
+  AND indexname IN (
+    'idx_notifications_user_id',
+    'idx_notifications_type',
+    'idx_notifications_read_at',
+    'idx_notifications_created_at',
+    'idx_notifications_unique_event',
+    'idx_notifications_related_swap_type'
+  );
+
+-- Check for canonical UNIQUE constraint
+SELECT
+  conname
+FROM pg_constraint
+WHERE conrelid = 'notifications'::regclass
+  AND contype = 'u'
+  AND conname IN (
+    'idx_notifications_unique_event',
+    'idx_notifications_related_swap_type'
+  );
+
 -- Check if there are any notifications in the table
 SELECT COUNT(*) as notification_count FROM notifications;
 
