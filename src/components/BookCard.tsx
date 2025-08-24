@@ -1,4 +1,4 @@
-import { Book, BookCondition } from '@/types/book'
+import { Book, BookCondition, SwapStatus } from '@/types/book'
 import { MapPin, User, Calendar, Trash2, MessageSquare, Edit3, Check, X, RefreshCw } from 'lucide-react'
 import Rating from './Rating'
 import { useState, useEffect } from 'react'
@@ -377,7 +377,7 @@ export default function BookCard({
       // Update the local book object
       if (book.swapRequests) {
         book.swapRequests = book.swapRequests.map(swap => 
-          swap.requester_id === user?.id ? { ...swap, status: 'cancelled' } : swap
+          swap.requester_id === user?.id ? { ...swap, status: SwapStatus.Cancelled } : swap
         )
         console.log('Updated local book swap requests:', book.swapRequests)
       }

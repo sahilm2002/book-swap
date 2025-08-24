@@ -239,14 +239,14 @@ function DashboardContent() {
         description: book.description,
         coverImage: book.cover_image || null,
         publishedYear: book.published_year,
-                          language: book.language,
-                  condition: book.condition,
-                  ownerId: book.owner_id,
-                  location: book.location,
-                  availableForSwap: book.available_for_swap,
-                  swap_status: book.swap_status,
-                  created_at: book.created_at,
-                  updated_at: book.updated_at
+        language: book.language,
+        condition: book.condition,
+        ownerId: book.owner_id,
+        location: book.location,
+        availableForSwap: book.available_for_swap,
+        swapStatus: book.swap_status,
+        createdAt: book.created_at,
+        updatedAt: book.updated_at
       })) || []
 
       setBooks(transformedBooks)

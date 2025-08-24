@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, BookOpen, User, Check, XCircle, MapPin, Calendar } from 'lucide-react'
-import { Book, BookCondition } from '@/types/book'
+import { Book, BookCondition, SwapStatus } from '@/types/book'
 import { supabase } from '@/lib/supabase'
 
 interface SwapRequest {
@@ -71,6 +71,7 @@ export default function SwapReviewModal({
           ownerId: 'mock-owner',
           location: 'Mock Location',
           availableForSwap: true,
+          swapStatus: SwapStatus.Available,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           language: 'English'
@@ -85,6 +86,7 @@ export default function SwapReviewModal({
           ownerId: 'mock-owner-2',
           location: 'Another Location',
           availableForSwap: true,
+          swapStatus: SwapStatus.Available,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           language: 'English'
