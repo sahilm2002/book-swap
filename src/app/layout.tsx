@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Navigation from '@/components/Navigation'
 import { AuthProvider } from '@/lib/auth-context'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -9,13 +8,18 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Books & Booze - Where Literature Meets Libations',
   description: 'A sophisticated community for bibliophiles who appreciate fine literature and craft cocktails. Share your favorite reads while discovering the perfect drink pairings.',
-  keywords: ['books', 'literature', 'cocktails', 'book exchange', 'reading', 'community', 'bibliophiles', 'craft cocktails', 'literary society'],
   authors: [{ name: 'Books & Booze Team' }],
+  keywords: ['books', 'literature', 'cocktails', 'book exchange', 'reading', 'community', 'bibliophiles', 'craft cocktails', 'literary society'],
   openGraph: {
     title: 'Books & Booze - Where Literature Meets Libations',
     description: 'A sophisticated community for bibliophiles who appreciate fine literature and craft cocktails. Share your favorite reads while discovering the perfect drink pairings.',
-    type: 'website',
     locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Books & Booze - Where Literature Meets Libations',
+    description: 'A sophisticated community for bibliophiles who appreciate fine literature and craft cocktails. Share your favorite reads while discovering the perfect drink pairings.',
   },
 }
 
@@ -27,12 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-          <AuthProvider>
-            <Navigation />
-            {children}
-          </AuthProvider>
-        </div>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )
