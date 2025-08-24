@@ -13,13 +13,20 @@ export interface Book {
   ownerId: string // Database field name
   location: string
   availableForSwap: boolean
-  swap_status?: string // New field for swap status
-  created_at: string // Database field name
-  updated_at: string // Database field name
+  swapStatus: SwapStatus // use camelCase and enum
+  swap_status?: SwapStatus // optional snake_case for DB compatibility
+  createdAt?: string // camelCase alias
+  updatedAt?: string // camelCase alias
+  created_at?: string // optional snake_case for DB compatibility
+  updated_at?: string // optional snake_case for DB compatibility
   swapRequests?: Array<{
     id: string
-    requester_id: string
-    status: string
+    requesterId: string
+    status: SwapStatus // narrow to enum
+    createdAt?: string
+    updatedAt?: string
+    created_at?: string
+    updated_at?: string
   }>
   // Owner information
   ownerUsername?: string
@@ -106,11 +113,14 @@ export enum BookCondition {
 }
 
 export enum SwapStatus {
-  PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  REJECTED = 'rejected',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+  Available = 'available',
+  Pending = 'pending',
+  Swapped = 'swapped',
+  Unavailable = 'unavailable',
+  Approved = 'approved',
+  Denied = 'denied',
+  Cancelled = 'cancelled',
+  Completed = 'completed'
 }
 
 export interface SearchFilters {
