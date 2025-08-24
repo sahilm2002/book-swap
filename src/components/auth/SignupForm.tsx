@@ -10,21 +10,27 @@ export default function SignupForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [validationError, setValidationError] = useState('')
   const { signUp, error, clearError } = useAuth()
   const router = useRouter()
+
+  const clearValidationError = () => {
+    setValidationError('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isSubmitting) return
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setValidationError('Passwords do not match')
       return
     }
 
     try {
       setIsSubmitting(true)
       clearError()
+      clearValidationError()
       await signUp(email, password)
       router.push('/dashboard')
     } catch (err) {
@@ -44,9 +50,9 @@ export default function SignupForm() {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
+          {(validationError || error) && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-              <p className="text-red-400 text-sm">{error}</p>
+              <p className="text-red-400 text-sm">{validationError || error}</p>
             </div>
           )}
 
@@ -60,7 +66,10 @@ export default function SignupForm() {
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                clearValidationError()
+              }}
               className="mt-1 block w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="Enter your email"
             />
@@ -76,7 +85,10 @@ export default function SignupForm() {
               type="password"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                clearValidationError()
+              }}
               className="mt-1 block w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="Enter your password"
             />
@@ -92,7 +104,10 @@ export default function SignupForm() {
               type="password"
               required
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value)
+                clearValidationError()
+              }}
               className="mt-1 block w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="Confirm your password"
             />

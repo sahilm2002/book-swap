@@ -21,14 +21,14 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
   )
 
   useEffect(() => {
-    if (!loading) {
+    if (shouldRedirect) {
       if (requireAuth && !user) {
         router.replace('/auth/login')
       } else if (!requireAuth && user) {
         router.replace('/dashboard')
       }
     }
-  }, [user, loading, requireAuth, router])
+  }, [shouldRedirect, requireAuth, user, router])
 
   // Show loading spinner during initial auth check OR while redirect is pending
   if (loading || shouldRedirect) {
